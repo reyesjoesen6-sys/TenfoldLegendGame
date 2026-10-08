@@ -531,7 +531,15 @@ if (Game.isAdmin()) {
 // NOT as an unlock authority — story progress is the sole authority.
 let unlockedHeroes = JSON.parse(safeLocalStorage.getItem('tenfold_unlocked_' + user.userID) || '["aeron"]');
 let heroLevels     = JSON.parse(safeLocalStorage.getItem('tenfold_levels_'   + user.userID) || '{}');
+let arenaLevels    = JSON.parse(safeLocalStorage.getItem('tenfold_arena_levels_' + user.userID) || '{}');
 let storyProgress  = JSON.parse(safeLocalStorage.getItem('tenfold_story_'    + user.userID) || '{}');
+
+// Returns the highest level for a hero across both story and arena stores.
+function getHeroDisplayLevel(id) {
+  const storyLv = heroLevels[id] || 1;
+  const arenaLv = arenaLevels[id] || 1;
+  return Math.max(storyLv, arenaLv);
+}
 
 // Wipe any stale unlock data so safeLocalStorage can never bypass story locks.
 // The only valid unlocks are aeron (free) + heroes whose chapter boss is cleared.
@@ -630,7 +638,7 @@ function buildGrid() {
     // to prevent stale data from showing heroes as unlocked.
     const locked       = !isHeroStoryUnlocked(id);
     const skillsDone   = locked ? false : isHeroSkillsComplete(id);
-    const level        = heroLevels[id] || 1;
+    const level        = getHeroDisplayLevel(id);
     const sel          = currentSelected === id;
 
     const card = document.createElement('div');
@@ -707,7 +715,7 @@ function selectHero(id) {
 // ── DETAIL PANEL ──────────────────────────────────────────────
 function renderDetailPanel(id) {
   const h     = HEROES[id];
-  const level = heroLevels[id] || 1;
+  const level = getHeroDisplayLevel(id);
   const stats = getScaledStats(id, level);
   const panel = document.getElementById('detail-panel');
   const inner = document.getElementById('detail-inner');
@@ -813,7 +821,7 @@ function renderDetailPanel(id) {
 // ── FOOTER ────────────────────────────────────────────────────
 function updateFooter(id) {
   const h     = HEROES[id];
-  const level = heroLevels[id] || 1;
+  const level = getHeroDisplayLevel(id);
   const footer = document.getElementById('footer-selected');
 
   const portraitHtml = h.sprites.portrait
@@ -899,6 +907,8 @@ async function loadHeroData() {
   }
   // Re-read story progress in case it was updated by a recent battle
   storyProgress = JSON.parse(safeLocalStorage.getItem('tenfold_story_' + user.userID) || '{}');
+  // Re-read arena levels in case they were updated by a recent arena battle
+  arenaLevels = JSON.parse(safeLocalStorage.getItem('tenfold_arena_levels_' + user.userID) || '{}');
   // Always rebuild unlock list strictly from story progress — this wipes any
   // stale safeLocalStorage data that would show locked heroes as unlocked.
   rebuildUnlockedFromStory();
