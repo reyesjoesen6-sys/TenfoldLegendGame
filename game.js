@@ -3,62 +3,51 @@
 // Shared hero data, sprite paths, API helpers, game state
 // ============================================================
 
-// ── SAFE STORAGE WRAPPERS ─────────────────────────────────────
-// MIT App Inventor WebViewer (and some Android WebViews) throw a
-// SecurityError when code touches localStorage / sessionStorage.
-// These wrappers silently fall back to an in-memory Map so the
-// game never crashes with "storage is unavailable".
-(function() {
-  // Persistent fallback for MIT App Inventor WebViewer.
-  // Uses window.name only when browser storage is unavailable.
-  const FALLBACK_PREFIX = 'TENFOLD_PERSIST:';
-  let fallbackData = {};
-
-  function loadFallback() {
-    try {
-      const raw = String(window.name || '');
-      if (raw.startsWith(FALLBACK_PREFIX)) {
-        const parsed = JSON.parse(decodeURIComponent(raw.slice(FALLBACK_PREFIX.length)));
-        if (parsed && typeof parsed === 'object') fallbackData = parsed;
-      }
-    } catch (_) {}
-  }
-  function saveFallback() {
-    try {
-      window.name = FALLBACK_PREFIX + encodeURIComponent(JSON.stringify(fallbackData));
-    } catch (_) {}
-  }
-  loadFallback();
-
-  function makeFallbackStore(bucket) {
-    if (!fallbackData[bucket] || typeof fallbackData[bucket] !== 'object') fallbackData[bucket] = {};
-    const data = fallbackData[bucket];
+// ── PC / DESKTOP STORAGE ───────────────────────────────────────
+// This game is designed to run directly in a normal PC/Desktop
+// browser. No MIT App Inventor / WebViewer dependency is required.
+//
+// localStorage is used for the browser session. If the browser blocks
+// storage, a temporary in-memory fallback keeps the page from crashing.
+(function () {
+  function makeMemoryStore() {
+    const data = Object.create(null);
     return {
-      getItem(k) { return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null; },
-      setItem(k, v) { data[k] = String(v); saveFallback(); },
-      removeItem(k) { delete data[k]; saveFallback(); },
-      clear() { Object.keys(data).forEach(k => delete data[k]); saveFallback(); }
+      getItem(key) {
+        return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null;
+      },
+      setItem(key, value) {
+        data[key] = String(value);
+      },
+      removeItem(key) {
+        delete data[key];
+      },
+      clear() {
+        Object.keys(data).forEach(key => delete data[key]);
+      }
     };
   }
 
-  function getNative(name) {
-    try { return window[name]; } catch (_) { return null; }
-  }
-  function storageOk(store) {
+  function getBrowserStorage(name) {
     try {
-      const TEST = '__tfl_test__';
-      store.setItem(TEST, '1');
-      store.removeItem(TEST);
-      return true;
-    } catch (_) { return false; }
+      const store = window[name];
+      if (!store) return null;
+
+      const testKey = '__tenfold_storage_test__';
+      store.setItem(testKey, '1');
+      store.removeItem(testKey);
+      return store;
+    } catch (_) {
+      return null;
+    }
   }
 
-  const nativeLocal = getNative('localStorage');
-  const nativeSession = getNative('sessionStorage');
-  window.safeLocalStorage = nativeLocal && storageOk(nativeLocal)
-    ? nativeLocal : makeFallbackStore('local');
-  window.safeSessionStorage = nativeSession && storageOk(nativeSession)
-    ? nativeSession : makeFallbackStore('session');
+  // PC/Desktop browser storage.
+  window.safeLocalStorage = getBrowserStorage('localStorage') || makeMemoryStore();
+  window.safeSessionStorage = getBrowserStorage('sessionStorage') || makeMemoryStore();
+
+  // Explicitly mark this build as browser/desktop.
+  window.TENFOLD_PC_MODE = true;
 })();
 
 // ── APPS SCRIPT WEB APP URL ───────────────────────────────────
@@ -3051,65 +3040,130 @@ const Game = {
   }
 };
 
-// ── API HELPER ────────────────────────────────────────────────
-function apiCall(params, timeoutMs = 6500) {
+// ── API HELPER — PC / DESKTOP BROWSER ──────────────────────────
+// Google Apps Script Web Apps can redirect through Google's servers.
+// A normal fetch() can therefore be blocked by browser CORS rules.
+// JSONP avoids that browser restriction because the request is made
+// through a normal <script> element.
+//
+// IMPORTANT:
+// Code.gs must return callback(JSON_OBJECT) when a "callback" query
+// parameter is supplied. If your Code.gs already supports JSONP,
+// this works directly on Chrome/Edge/Firefox on PC/Desktop.
+function apiCall(params, timeoutMs = 10000) {
   return new Promise((resolve) => {
     if (!API_URL || API_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
-      resolve({ success: false, message: 'API not configured.' });
+      resolve({
+        success: false,
+        code: 'API_NOT_CONFIGURED',
+        message: 'Google Apps Script Web App URL is not configured.'
+      });
       return;
     }
 
-    // MIT App Inventor WebViewer can block normal fetch/CORS requests.
-    // JSONP uses a normal <script> request and works in WebViewer.
-    const callbackName = '__tfl_jsonp_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-    const script = document.createElement('script');
-    const url = new URL(API_URL);
+    let url;
 
-    Object.entries(params || {}).forEach(([k, v]) => {
-      url.searchParams.append(k, v == null ? '' : String(v));
+    try {
+      url = new URL(API_URL, window.location.href);
+    } catch (_) {
+      resolve({
+        success: false,
+        code: 'INVALID_API_URL',
+        message: 'Invalid Google Apps Script Web App URL.'
+      });
+      return;
+    }
+
+    // Send every parameter exactly as the server expects.
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.set(key, String(value));
+      }
     });
+
+    const callbackName =
+      '__TENFOLD_API_' +
+      Date.now().toString(36) +
+      '_' +
+      Math.random().toString(36).slice(2);
+
     url.searchParams.set('callback', callbackName);
 
+    const script = document.createElement('script');
+    script.async = true;
+    script.referrerPolicy = 'no-referrer-when-downgrade';
+
     let finished = false;
-    const cleanup = () => {
-      if (script.parentNode) script.parentNode.removeChild(script);
-      try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
-    };
-    const finish = (result) => {
+    let timer = null;
+
+    function cleanup() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+
+      try {
+        delete window[callbackName];
+      } catch (_) {
+        window[callbackName] = undefined;
+      }
+    }
+
+    function finish(result) {
       if (finished) return;
       finished = true;
       cleanup();
-      resolve(result && typeof result === 'object'
-        ? result
-        : { success: false, message: 'Invalid server response.' });
+
+      if (result && typeof result === 'object') {
+        resolve(result);
+      } else {
+        resolve({
+          success: false,
+          code: 'INVALID_RESPONSE',
+          message: 'The server returned an invalid response.'
+        });
+      }
+    }
+
+    // Apps Script JSONP callback.
+    window[callbackName] = function (result) {
+      finish(result);
     };
 
-    window[callbackName] = finish;
-    script.async = true;
-
-    try {
-      script.src = url.toString();
-    } catch (err) {
+    script.onerror = function () {
       finish({
         success: false,
-        message: 'Invalid Apps Script Web App URL.'
+        code: 'SERVER_CONNECTION_ERROR',
+        message:
+          'Cannot reach the Google Apps Script server from this PC. ' +
+          'Check the Web App URL and make sure the deployment is accessible to anyone with the link.'
       });
-      return;
-    }
-    script.onerror = () => finish({
-      success: false,
-      message: 'Cannot connect to Google Sheets. Check your Apps Script Web App deployment and internet connection.'
-    });
+    };
 
-    // Never leave the MIT App Inventor WebViewer waiting forever.
-    setTimeout(() => {
-      if (!finished) finish({
-        success: false,
-        timeout: true,
-        message: 'Connection timed out. Make sure the Apps Script Web App is deployed as Anyone.'
-      });
-    }, timeoutMs);
+    script.onload = function () {
+      // Do not finish here. A valid JSONP response calls the callback.
+      // If the script loaded but never called the callback, the timeout
+      // below provides the useful error instead of leaving the page stuck.
+    };
 
+    timer = setTimeout(function () {
+      if (!finished) {
+        finish({
+          success: false,
+          code: 'SERVER_TIMEOUT',
+          timeout: true,
+          message:
+            'Google Apps Script did not respond in time. ' +
+            'The PC is connected, but the Web App did not return a valid response.'
+        });
+      }
+    }, Math.max(3000, Number(timeoutMs) || 10000));
+
+    script.src = url.toString();
     document.head.appendChild(script);
   });
 }
