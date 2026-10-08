@@ -2585,9 +2585,15 @@ function startBattle() {
       }
     }
   } else {
-    // Arena mode — use the arena-specific level (independent from story)
+    // Arena mode — use the highest of arena level OR story level.
+    // A hero who cleared Chapter 5 (story Lv 25) should never enter
+    // the arena weaker than that. The two stores grow independently,
+    // but the displayed level on characters.html is already the max of
+    // both, so the battle must match that same value.
     const arenaLvls = JSON.parse(safeLocalStorage.getItem('tenfold_arena_levels_' + user.userID) || '{}');
-    pLv = arenaLvls[rollPlayerHeroId] || 1;
+    const arenaLv   = arenaLvls[rollPlayerHeroId] || 1;
+    const storyLv   = lvls[rollPlayerHeroId] || 1;
+    pLv = Math.max(arenaLv, storyLv);
   }
 
   // Story monsters use their fixed level from safeSessionStorage; others scale near player
