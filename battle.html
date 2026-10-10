@@ -1148,6 +1148,8 @@ function renderHUD() {
     }
     const bo = $(burnOverlayId);
     if (bo) bo.className = 'burn-overlay'      + (burnVal     > 0 ? ' active' : '');
+    const fo = $(frozenOverlayId);
+    if (fo) fo.className = 'frozen-overlay'    + (frozenVal   > 0 ? ' active' : '');
     const po = $(paralyzedOverlayId);
     if (po) po.className = 'paralyzed-overlay' + (paralyzedVal > 0 ? ' active' : '');
   }
@@ -1680,6 +1682,22 @@ function spawnDmg(who, value, isCrit=false, isHeal=false) {
   n.addEventListener('animationend', ()=>n.remove(), {once:true});
 }
 
+// ── STATUS NOTIFICATION FLOAT ────────────────────────────────
+// Shows a floating status label on the target's sprite (e.g. "⚡ PARALYZED!")
+function spawnStatusNotif(who, text, color) {
+  const wrap = $(who === 'player' ? 'p-wrap' : 'e-wrap');
+  if (!wrap) return;
+  const n = document.createElement('div');
+  n.className = 'dmg-num';
+  n.textContent = text;
+  n.style.color = color || '#ffffff';
+  n.style.fontSize = '1.1rem';
+  n.style.fontWeight = '900';
+  n.style.textShadow = `0 0 12px ${color || '#ffffff'}`;
+  wrap.appendChild(n);
+  n.addEventListener('animationend', () => n.remove(), {once: true});
+}
+
 function applyDmg(target, amount) {
   const guarded = target==='enemy' ? B.eGuard : B.pGuard;
   const r = guarded ? Math.floor(amount*.4) : amount;
@@ -1842,6 +1860,10 @@ function execPlayer(type, sk) {
     if (B.playerHeroId==='elysia') { B.eBurning=Math.max(B.eBurning,2); B.eParalyzed=Math.max(B.eParalyzed,2); extra=' ✨💥 CELESTIAL JUDGMENT! Arcane overload! (Burn 2 + Paralyzed 2)'; }
   }
   if (extra) logMsg(extra,'lp');
+  // Show floating status notification on enemy sprite immediately
+  if (B.eBurning > 0)    spawnStatusNotif('enemy', '🔥 BURN!',      '#ff4500');
+  if (B.eFrozen > 0)     spawnStatusNotif('enemy', '❄ FROZEN!',     '#00cfff');
+  if (B.eParalyzed > 0)  spawnStatusNotif('enemy', '⚡ PARALYZED!', '#ffe600');
   // doRetreat (called inside spawnEffect) handles sprint→run→walk→idle
   checkEnd(()=>{ tickStatus('enemy'); renderHUD();
     checkEnd(()=>{ tickCD('player');
@@ -2001,6 +2023,12 @@ function execEnemy(type, sk) {
     if (eId==='elysia') { B.pBurning=Math.max(B.pBurning,2); B.pParalyzed=Math.max(B.pParalyzed,2); extra=' ✨💥 CELESTIAL JUDGMENT! Arcane overload! (Burn 2 + Paralyzed 2)'; }
   }
   if (extra) logMsg(extra,'le');
+  // Show floating status notification on player sprite immediately
+  if (B.pBurning > 0)    spawnStatusNotif('player', '🔥 BURN!',      '#ff4500');
+  if (B.pFrozen > 0)     spawnStatusNotif('player', '❄ FROZEN!',     '#00cfff');
+  if (B.pParalyzed > 0)  spawnStatusNotif('player', '⚡ PARALYZED!', '#ffe600');
+  // Apply status visuals on player sprite immediately after enemy attack
+  renderHUD();
   // doRetreat handles sprint→run→walk→idle for enemy too
   checkEnd(()=>{ tickStatus('player'); renderHUD();
     checkEnd(()=>{ tickCD('enemy');
