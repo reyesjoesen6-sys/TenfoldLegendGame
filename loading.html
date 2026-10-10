@@ -279,7 +279,7 @@ const PRELOAD_SPRITES = [
   BASE+'Mira_idle.webp', BASE+'Mira_walk.webp', BASE+'Mira_run.webp',
   BASE+'Mira_sprint.webp', BASE+'Mira_attack.webp',
   BASE+'Mira_background1.webp', BASE+'Mira_background2.webp', BASE+'Mira_background3.webp',
-  BASE+'Mira_background5.webp',
+  BASE+'Mira_background4.webp', BASE+'Mira_background5.webp',
   // Orion
   BASE+'Orion_idle.webp', BASE+'Orion_walk.webp', BASE+'Orion_run.webp',
   BASE+'Orion_sprint.webp', BASE+'Orion_attack.webp',
@@ -304,6 +304,23 @@ PRELOAD_SPRITES.forEach(src => {
   img.onload = img.onerror = () => { loadedCount++; };
   img.src = src;
 });
+
+// ── APPS SCRIPT WARM-UP PING ───────────────────────────────
+// Fire a lightweight ping to Apps Script as soon as loading starts.
+// This wakes up the server container so it's ready by the time
+// the user reaches the login screen — prevents cold-start timeouts.
+(function warmUpServer() {
+  try {
+    const PING_URL = 'https://script.google.com/macros/s/AKfycbynm1v4E7ChqiPUHQevsjWiTMbVdVOp9EGRRTUEDfYhnTrJA9yLeDGQ2Bv0GsSpFbxFEQ/exec';
+    const cb = '__tenfold_ping_' + Date.now();
+    window[cb] = function() { try { delete window[cb]; } catch(e) {} };
+    const s = document.createElement('script');
+    s.async = true;
+    s.src = PING_URL + '?action=ping&callback=' + cb;
+    s.onerror = function() { try { delete window[cb]; } catch(e) {} };
+    setTimeout(function() { document.head.appendChild(s); }, 200);
+  } catch(e) {}
+})();
 
 // ── PROGRESS ───────────────────────────────────────────────
 const fill   = document.getElementById('fill');
@@ -349,7 +366,7 @@ const t = setInterval(()=>{
     setTimeout(()=>{
       document.body.classList.add('fading');
       setTimeout(()=>{
-        sessionStorage.setItem('tenfold_loaded', '1');
+        try { sessionStorage.setItem('tenfold_loaded', '1'); } catch(e) {}
         window.location.href='index.html';
       },900);
     },600);
