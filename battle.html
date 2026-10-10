@@ -691,4 +691,2000 @@ html { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
       <div class="skill-slot">
         <div class="skill-slot-label">Special</div>
         <button class="skill-btn special-s" id="btn-special" onclick="useSkill('special')">
-          <div 
+          <div class="skill-btn-fb" id="fb-special"><span>✨</span><small>SPECIAL</small></div>
+          <span class="skill-key-hint">E</span>
+        </button>
+        <div class="skill-name-tag" id="name-special">—</div>
+      </div>
+      <div class="skill-slot">
+        <div class="skill-slot-label">Ultimate</div>
+        <button class="skill-btn ultimate-s" id="btn-ultimate" onclick="useSkill('ultimate')">
+          <div class="skill-btn-fb" id="fb-ultimate"><span>💥</span><small>ULTIMATE</small></div>
+          <span class="skill-key-hint">R</span>
+        </button>
+        <div class="skill-name-tag" id="name-ultimate">—</div>
+      </div>
+    </div>
+    <div class="ctrl-divider"></div>
+    <div class="battle-log" id="battle-log"><p class="ls">Waiting for battle…</p></div>
+    <div class="ctrl-divider"></div>
+    <div class="action-area">
+      <button class="btn btn-gold" id="btn-attack" onclick="useAttack()">⚔ ATTACK</button>
+      <button class="btn btn-auto" id="btn-auto" onclick="toggleAuto()">▶ AUTO</button>
+      <button class="btn-flee"     onclick="fleeBattle()">↩ Flee</button>
+    </div>
+  </div>
+
+</div><!-- /arena-page -->
+
+<script src="game.js"></script>
+<script>
+'use strict';
+
+// ── MOBILE VIEWPORT HEIGHT FIX (iOS Safari address bar) ──────
+function setVh() {
+  document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+}
+setVh();
+window.addEventListener('resize', setVh);
+// Apply to arena-page height via inline style when needed
+document.addEventListener('DOMContentLoaded', () => {
+  const page = document.querySelector('.arena-page');
+  if (page) page.style.height = 'calc(var(--vh, 1vh) * 100)';
+});
+
+// ── PORTRAIT LOCK (battle page — blocking) ────────────────────
+(function() {
+  const prompt = document.getElementById('rotate-prompt');
+  if (!prompt) return;
+
+  function isMobile() {
+    return window.innerWidth <= 900 || 'ontouchstart' in window;
+  }
+  function isPortrait() {
+    if (screen.orientation && screen.orientation.type) {
+      return screen.orientation.type.startsWith('portrait');
+    }
+    return window.innerHeight > window.innerWidth;
+  }
+  function checkOrientation() {
+    if (isMobile() && isPortrait()) {
+      prompt.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    } else {
+      prompt.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+  }
+
+  // Fire immediately — no delay, no portrait flash
+  checkOrientation();
+  window.addEventListener('resize', checkOrientation);
+  window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 150));
+  if (screen.orientation) {
+    screen.orientation.addEventListener('change', () => setTimeout(checkOrientation, 150));
+  }
+})();
+
+// ── AUTO LOGIN (no redirect on file://) ──────────────────────
+Game.loadUser();
+if (!Game.user) {
+  Game.login({ userID:'demo', username:'Player', totalScore:0, sessionID:'local' });
+}
+const user = Game.user;
+
+// Background sync only; battle startup never waits for the server.
+Game.syncScore().then((score) => {
+  if (score === null) return;
+  user.totalScore = score;
+  const nav = document.getElementById('nav-score');
+  if (nav) nav.textContent = score;
+  const navMobile = document.getElementById('nav-score-mobile');
+  if (navMobile) navMobile.textContent = score;
+});
+
+// ── ENSURE HERO SELECTED ─────────────────────────────────────
+(function() {
+  let h = Game.getSelectedHero();
+  if (!h || !HEROES[h]) {
+    Game.selectHero('aeron');
+  }
+})();
+
+
+
+// ── MAPS ─────────────────────────────────────────────────────
+const MAPS = [
+  { name:'Flame Sanctum',    bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/aeron_1background.webp'  },
+  { name:'Ashen Wasteland',  bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/aeron_2background.webp'  },
+  { name:'Inferno Forge',    bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/aeron_3background.webp'  },
+  { name:'Phoenix Crater',   bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/aeron_4background.webp'  },
+  { name:'Frozen Tundra',    bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Lyra_background1.webp'   },
+  { name:'Crystal Glacier',  bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Lyra_background2.webp'   },
+  { name:'Frostbite Valley', bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Lyra_background3.webp'   },
+  { name:'Thunder Plains',   bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Kael_background1.webp'   },
+  { name:'Storm Peak',       bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Kael_background2.webp'   },
+  { name:'Crumbled Canyon',  bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Riven_background1.webp'  },
+  { name:'Earthen Ruins',    bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Riven_background2.webp'  },
+  { name:'Moonlit Shrine',   bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Selene_background1.webp' },
+  { name:'Celestial Peaks',  bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Selene_background2.webp' },
+  { name:'Starfall Glade',   bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Selene_background3.webp' },
+  { name:'Shadow Alley',     bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Draven_background1.webp' },
+  { name:'Crimson District', bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Draven_background2.webp' },
+  { name:'Dark Sanctum',     bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Draven_background3.webp' },
+  { name:'Phantom Ridge',    bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Draven_background4.webp' },
+  { name:'Night Citadel',    bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Draven_background5.webp' },
+  { name:'Coral Depths',     bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Mira_background1.webp'   },
+  { name:'Tidal Cavern',     bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Mira_background2.webp'   },
+  { name:'Sunken Temple',    bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Mira_background3.webp'   },
+  { name:'Ocean Abyss',      bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Mira_background4.webp'   },
+  { name:'Stormy Shores',    bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Mira_background5.webp'   },
+  { name:'Iron Fortress',    bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/brutus_background1.webp' },
+  { name:'Steel Ramparts',   bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/brutus_background2.webp' },
+  { name:'Siege Grounds',    bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/brutus_background3.webp' },
+  { name:'War Throne',       bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/brutus_background4.webp' },
+  { name:'Gale Peak',        bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Orion_background1.webp'  },
+  { name:'Stormwind Ridge',  bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Orion_background2.webp'  },
+  { name:'Tempest Hollow',   bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Orion_background3.webp'  },
+  { name:'Arcane Sanctum',   bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Elysia_background1.webp' },
+  { name:'Celestial Spire',  bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Elysia_background2.webp' },
+  { name:'Starlight Realm',  bg:'https://res.cloudinary.com/jtrgd4x8/image/upload/Elysia_background3.webp' },
+];
+
+// ── BATTLE STATE ─────────────────────────────────────────────
+let B = {};
+let rollPlayerHeroId, rollEnemyHeroId, rollMap;
+
+// ── AUTO-BATTLE ───────────────────────────────────────────────
+let autoPlay = false;
+
+function toggleAuto() {
+  autoPlay = !autoPlay;
+  const btn = document.getElementById('btn-auto');
+  if (btn) {
+    btn.classList.toggle('active', autoPlay);
+    btn.textContent = autoPlay ? '⏹ AUTO ON' : '▶ AUTO';
+  }
+  // If auto just turned ON and it's already the player's turn, act immediately
+  if (autoPlay && !B.over && !B.locked && B.turn === 'player') {
+    setTimeout(doAutoPlayerTurn, 300);
+  }
+}
+
+// Mirror of pickEnemySkill() but for the player — uses same smart logic
+function pickPlayerSkill() {
+  const hp  = B.pHp / B.pMaxHp;
+  const rng = Math.random();
+
+  // Read which skills are actually unlocked for the player
+  const skillUL  = JSON.parse(safeLocalStorage.getItem('tenfold_skills_' + (Game.user && Game.user.userID || 'demo')) || '{}');
+  const unlocked = Game.isAdmin() ? ['basic','special','ultimate'] : ((skillUL[B.playerHeroId]) || []);
+
+  const canSpecial  = unlocked.includes('special')  && B.pCD.special  === 0;
+  const canUltimate = unlocked.includes('ultimate') && B.pCD.ultimate === 0;
+  const canBasic    = unlocked.includes('basic')    && B.pCD.basic    === 0;
+
+  // Ultimate — use when low HP or 35% chance
+  if (canUltimate) {
+    if (hp < 0.5 || rng < 0.35) return 'ultimate';
+  }
+
+  // Special — smart use based on skill type
+  if (canSpecial) {
+    const sp = B.pHero.skills.special;
+    if (sp.damage < 0 && hp < 0.55) return 'special';   // heal when low HP
+    if (sp.damage === 0 && rng < 0.4) return 'special';  // guard randomly
+    if (sp.damage > 0  && rng < 0.60) return 'special';  // damage 60% chance
+  }
+
+  // Basic skill
+  if (canBasic) return 'basic';
+
+  // Fallback — plain attack
+  return 'attack';
+}
+
+function doAutoPlayerTurn() {
+  if (!autoPlay || B.over || B.locked || B.turn !== 'player') return;
+  const choice = pickPlayerSkill();
+  if (choice === 'attack') {
+    useAttack();
+  } else {
+    useSkill(choice);
+  }
+}
+
+// ── START PLAYER TURN — auto-skip if paralyzed ───────────────
+function startPlayerTurn() {
+  B.turn = 'player'; B.locked = false;
+  renderHUD();
+  if (B.over) return;
+
+  // If paralyzed, skip the player's turn automatically
+  if (B.pParalyzed > 0) {
+    B.pParalyzed--;
+    renderHUD();
+    logMsg(`⚡ Paralyzed! You can't move! (${B.pParalyzed} turns left)`, 'ls');
+    tickStatus('player');
+    tickCD('player');
+    B.turn = 'enemy'; B.locked = false; renderHUD();
+    setTimeout(enemyAI, 900 + Math.random() * 400);
+    return;
+  }
+
+  if (autoPlay) setTimeout(doAutoPlayerTurn, 400);
+}
+
+// ── $ HELPER ─────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+// ── ENTITY HELPER — hero or story monster ────────────────────
+function getEntity(id) {
+  return HEROES[id] || STORY_ENEMIES[id] || null;
+}
+
+// ── INIT BATTLE STATE ────────────────────────────────────────
+function initBattleState(pId, eId, mapObj, pLv, eLv) {
+  const pH = getEntity(pId), eH = getEntity(eId);
+  // Arena: all heroes use the same flat stat table per level — no hero
+  // has a built-in stat edge. Skills still differ, giving each hero identity.
+  // Story: use each hero's own scaled stats as normal.
+  const isArena = (safeSessionStorage.getItem('tenfold_battle_mode') || 'arena') === 'arena';
+  const pS = isArena ? getArenaStats(pLv) : getScaledStats(pId, pLv);
+  const eS = isArena ? getArenaStats(eLv) : getScaledStats(eId, eLv);
+  B = {
+    mode:    safeSessionStorage.getItem('tenfold_battle_mode')    || 'arena',
+    chapter: +safeSessionStorage.getItem('tenfold_battle_chapter') || 0,
+    stage:   +safeSessionStorage.getItem('tenfold_battle_stage')   || 0,
+    playerHeroId:pId, enemyHeroId:eId, map:mapObj,
+    pHero:pH, pMaxHp:pS.hp, pHp:pS.hp,
+    pAtk:pS.atk, pDef:pS.def, pSpd:pS.spd, pCrit:pS.crit, pLevel:pLv,
+    pBurning:0, pFrozen:0, pParalyzed:0, pGuard:false, pBoost:0,
+    pCD:{basic:0,special:0,ultimate:0},
+    eHero:eH, eMaxHp:eS.hp, eHp:eS.hp,
+    eAtk:eS.atk, eDef:eS.def, eSpd:eS.spd, eCrit:eS.crit, eLevel:eLv,
+    eBurning:0, eFrozen:0, eParalyzed:0, eGuard:false, eBoost:0,
+    eCD:{basic:0,special:0,ultimate:0},
+    turn:'player', over:false, turnCount:0, locked:false,
+  };
+}
+
+// ── SPRITE FLIP HELPER ───────────────────────────────────────
+// Player is on the LEFT  → needs to face RIGHT
+// Enemy  is on the RIGHT → needs to face LEFT
+// facesRight=true  → sprite naturally faces right
+//   player: no flip (scaleX 1)   enemy: flip (scaleX -1)
+// facesRight=false → sprite naturally faces left
+//   player: flip (scaleX -1)     enemy: no flip (scaleX 1)
+function getSpriteFlip(who, heroId, state) {
+  const entity = getEntity(heroId);
+  // Per-sprite flip override (e.g. ash_wolf has inconsistent sprite directions)
+  if (entity && entity.flipStates && state && state in entity.flipStates) {
+    const facesRight = entity.flipStates[state];
+    if (who === 'player') return facesRight ?  1 : -1;
+    else                  return facesRight ? -1 :  1;
+  }
+  const facesRight = entity ? entity.facesRight !== false : true;
+  if (who === 'player') return facesRight ?  1 : -1;
+  else                  return facesRight ? -1 :  1;
+}
+
+// ── BUILD FIGHTER SPRITE ─────────────────────────────────────
+// ── CDN URL OPTIMISER ─────────────────────────────────────────
+// Injects f_auto,q_auto into Cloudinary URLs so Chrome automatically
+// receives WebP at the optimal quality level, reducing payload size
+// and eliminating format-conversion lag on first load.
+function cdnOpt(url) {
+  if (!url || !url.includes('res.cloudinary.com')) return url;
+  return url.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
+}
+
+function buildSprite(who, heroId) {
+  const wrapId = who === 'player' ? 'p-wrap' : 'e-wrap';
+  const sprId  = who === 'player' ? 'p-sprite' : 'e-sprite';
+  const wrap   = $(wrapId);
+  const h      = getEntity(heroId);
+  const frozen = wrap.querySelector('.frozen-overlay');
+
+  wrap.querySelectorAll('.fighter-sprite,.fighter-sprite-fallback').forEach(el => el.remove());
+
+  const idleSrc = h.sprites && h.sprites.idle;
+  const flip    = getSpriteFlip(who, heroId, 'idle');
+  // Store the base scale as a data attribute so approach/retreat never lose it
+  const sScale  = h.spriteScale || 1;
+  wrap.dataset.baseScale = sScale;
+  if (idleSrc) {
+    const img = document.createElement('img');
+    img.className = 'fighter-sprite';
+    img.id  = sprId;
+    img.alt = h.name;
+    img.src = cdnOpt(idleSrc);
+    img.style.transform       = `scaleX(${flip})`;
+    img.style.transformOrigin = 'bottom center';
+    // Apply scale + reset any leftover translateX from a previous battle
+    wrap.style.transform      = `scale(${sScale}) translateX(0px)`;
+    wrap.style.transformOrigin= 'bottom center';
+    img.onerror = () => { img.remove(); addFallback(wrap, who, heroId, h, frozen, sprId); };
+    wrap.insertBefore(img, frozen);
+  } else {
+    addFallback(wrap, who, heroId, h, frozen, sprId);
+  }
+}
+
+function addFallback(wrap, who, heroId, h, frozen, sprId) {
+  const fb = document.createElement('div');
+  fb.className   = 'fighter-sprite-fallback';
+  fb.id          = sprId;
+  fb.textContent = ELEMENT_ICONS[h.element] || '⚔';
+  fb.style.transform = `scaleX(${getSpriteFlip(who, heroId, 'idle')})`;
+  wrap.insertBefore(fb, frozen);
+}
+
+function setSprite(who, state) {
+  const heroId = who === 'player' ? B.playerHeroId : B.enemyHeroId;
+  const h  = getEntity(heroId);
+  const el = $(who === 'player' ? 'p-sprite' : 'e-sprite');
+  if (!el || el.tagName !== 'IMG') return;
+  const src = (h.sprites && h.sprites[state]) || (h.sprites && h.sprites.idle) || '';
+  if (src) {
+    el.src = cdnOpt(src);
+    // flip only on the img; scale stays on the wrap (set during buildSprite)
+    el.style.transform       = `scaleX(${getSpriteFlip(who, heroId, state)})`;
+    el.style.transformOrigin = 'bottom center';
+  }
+}
+
+// ── PRELOAD BATTLE ASSETS ─────────────────────────────────────
+// Fires all sprite/skill-frame fetches immediately so the browser
+// has them cached before the first action, eliminating mid-battle lag.
+// Returns a Promise that resolves when all critical frames are fetched.
+
+function preloadBattleAssets(playerHeroId, enemyHeroId) {
+  const urls = new Set();
+
+  [playerHeroId, enemyHeroId].forEach(id => {
+    const h = getEntity(id);
+    if (!h) return;
+
+    // Sprite states — preload all movement + attack states so approach/retreat
+    // animations never stall waiting for a network fetch on first cast.
+    const sp = h.sprites || {};
+    ['idle', 'walk', 'run', 'sprint', 'attack'].forEach(s => { if (sp[s]) urls.add(cdnOpt(sp[s])); });
+    if (sp.portrait) urls.add(cdnOpt(sp.portrait));
+    if (Array.isArray(sp.backgrounds)) sp.backgrounds.forEach(b => { if (b) urls.add(cdnOpt(b)); });
+
+    // Skill icons + effect frames — these are the most important to pre-decode
+    const sk = h.skills || {};
+    ['basic', 'special', 'ultimate'].forEach(type => {
+      const skill = sk[type];
+      if (!skill) return;
+      if (skill.icon) urls.add(cdnOpt(skill.icon));
+      if (Array.isArray(skill.frames)) skill.frames.forEach(f => { if (f) urls.add(cdnOpt(f)); });
+    });
+  });
+
+  // Use new Image() so the browser fully decodes each image into memory,
+  // not just warms the HTTP cache. This eliminates the first-frame decode
+  // stutter that makes skill effects appear to lag on first cast.
+  // Priority: skill frames first (most visible), then sprites, then backgrounds.
+  const frameUrls   = [];
+  const spriteUrls  = [];
+  const otherUrls   = [];
+
+  urls.forEach(url => {
+    // Classify: skill effect frames contain 'frame' or 'effect' or 'skill' in path
+    if (/frame|effect/i.test(url)) frameUrls.push(url);
+    else if (/idle|walk|run|sprint|attack|portrait/i.test(url)) spriteUrls.push(url);
+    else otherUrls.push(url);
+  });
+
+  const ordered = [...frameUrls, ...spriteUrls, ...otherUrls];
+
+  // Load in priority order with new Image() — resolves when the image is
+  // fully decoded and ready to paint with zero stutter.
+  // Cap concurrency to 8 to avoid overwhelming mobile connections.
+  const CONCURRENCY = 8;
+  let idx = 0;
+  function next() {
+    if (idx >= ordered.length) return Promise.resolve();
+    const url = ordered[idx++];
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload  = resolve;
+      img.onerror = resolve; // don't block on missing assets
+      img.src     = url;
+    }).then(next);
+  }
+
+  const pipes = [];
+  for (let i = 0; i < Math.min(CONCURRENCY, ordered.length); i++) pipes.push(next());
+  return Promise.all(pipes);
+}
+
+// ── LOAD SKILL ICONS ─────────────────────────────────────────
+function loadSkillIcons(heroId) {
+  const h = getEntity(heroId);
+  ['basic','special','ultimate'].forEach(type => {
+    const sk   = h.skills[type];
+    const btn  = $(`btn-${type}`);
+    const fb   = $(`fb-${type}`);
+    const ntag = $(`name-${type}`);
+    if (ntag) ntag.textContent = sk.name;
+    btn.title = `${sk.name} — ${sk.desc}`;
+    btn.querySelectorAll('img.sk-icon').forEach(i => i.remove());
+    if (sk.icon) {
+      const img = document.createElement('img');
+      img.className = 'sk-icon';
+      img.alt = sk.name;
+      img.src = sk.icon;
+      img.onload  = () => { if (fb) fb.style.display = 'none'; };
+      img.onerror = () => { img.remove(); if (fb) fb.style.display = 'flex'; };
+      btn.insertBefore(img, btn.firstChild);
+    }
+  });
+}
+
+// ── HUD ──────────────────────────────────────────────────────
+function renderHUD() {
+  $('hud-p-name').innerHTML = `${B.pHero.name} <span class="hud-lv">Lv ${B.pLevel}</span>`;
+  $('hud-e-name').innerHTML = `${B.eHero.name} <span class="hud-lv">Lv ${B.eLevel}</span>`;
+  updateBar('p-hp-bar','p-hp-val', B.pHp, B.pMaxHp, true);
+  updateBar('e-hp-bar','e-hp-val', B.eHp, B.eMaxHp, true);
+  $('hud-player').className = 'hud-box' + (B.turn==='player' ? ' your-turn' : '');
+  $('hud-enemy').className  = 'hud-box enemy-box' + (B.turn==='enemy' ? ' enemy-turn' : '');
+  $('turn-text').textContent = B.turn==='player' ? 'YOUR TURN' : 'ENEMY TURN';
+  renderStatus('p-status', B.pBurning, B.pFrozen, B.pParalyzed, B.pGuard);
+  renderStatus('e-status', B.eBurning, B.eFrozen, B.eParalyzed, B.eGuard);
+  $('p-frozen').className = 'frozen-overlay' + (B.pFrozen > 0 ? ' active' : '');
+  $('e-frozen').className = 'frozen-overlay' + (B.eFrozen > 0 ? ' active' : '');
+
+  // ── STATUS VISUALS: sprite glow classes + overlays ──
+  function applyStatusVisuals(sprId, burnVal, frozenVal, paralyzedVal, burnOverlayId, frozenOverlayId, paralyzedOverlayId) {
+    const spr = $(sprId);
+    if (spr) {
+      spr.classList.toggle('burning',   burnVal     > 0);
+      spr.classList.toggle('frozen',    frozenVal   > 0);
+      spr.classList.toggle('paralyzed', paralyzedVal > 0);
+    }
+    const bo = $(burnOverlayId);
+    if (bo) bo.className = 'burn-overlay'      + (burnVal     > 0 ? ' active' : '');
+    const po = $(paralyzedOverlayId);
+    if (po) po.className = 'paralyzed-overlay' + (paralyzedVal > 0 ? ' active' : '');
+  }
+  applyStatusVisuals('p-sprite', B.pBurning, B.pFrozen, B.pParalyzed, 'p-burn', 'p-frozen', 'p-paralyzed');
+  applyStatusVisuals('e-sprite', B.eBurning, B.eFrozen, B.eParalyzed, 'e-burn', 'e-frozen', 'e-paralyzed');
+  updateSkillBtns();
+}
+
+function updateBar(barId, valId, cur, max, isHp) {
+  const pct = Math.max(0, Math.min(100, cur/max*100));
+  const el  = $(barId); if (!el) return;
+  el.style.width = pct + '%';
+  const vl = $(valId); if (vl) vl.textContent = `${Math.max(0,Math.floor(cur))} / ${max}`;
+  if (isHp) {
+    if (pct < 25)      el.style.background = 'linear-gradient(90deg,#660000,#cc0000,#ff2222)';
+    else if (pct < 50) el.style.background = 'linear-gradient(90deg,#884400,#ee6600,#ffaa44)';
+    else               el.style.background = 'linear-gradient(90deg,#aa0000,#ff4444,#ff9999)';
+  }
+}
+
+function renderStatus(elId, burn, freeze, paralyzed, guard) {
+  const el = $(elId); if (!el) return;
+  el.innerHTML =
+    (burn      > 0 ? `<span class="status-badge sb-burn">🔥 Burn ${burn}</span>`          : '') +
+    (freeze    > 0 ? `<span class="status-badge sb-freeze">❄ Frozen ${freeze}</span>`      : '') +
+    (paralyzed > 0 ? `<span class="status-badge sb-paralyzed">⚡ Paralyzed ${paralyzed}</span>` : '') +
+    (guard         ? `<span class="status-badge sb-guard">🛡 Guard</span>`                  : '');
+}
+
+function updateSkillBtns() {
+  const isStory  = B.mode === 'story';
+  const skillUL  = JSON.parse(safeLocalStorage.getItem('tenfold_skills_' + (Game.user && Game.user.userID || 'demo')) || '{}');
+
+  // A skill is playable when:
+  //   • The player is an admin (all skills always available), OR
+  //   • The skill has been unlocked via story progress (tenfold_skills_ localStorage).
+  // This applies equally in both story battles and arena — you only use what you've earned.
+  function isSkillPlayable(type) {
+    if (Game.isAdmin()) return true; // admins always have all skills
+    const heroId   = B.playerHeroId;
+    const unlocked = (skillUL && skillUL[heroId]) ? skillUL[heroId] : [];
+    return unlocked.includes(type);
+  }
+
+  // Hint text shown on the lock overlay — dynamic per chapter's hero
+  const CH_HERO_NUM = {aeron:1,lyra:2,kael:3,riven:4,selene:5,draven:6,mira:7,orion:8,brutus:9,elysia:10};
+  const _ch = CH_HERO_NUM[B.playerHeroId] || 1;
+  const SKILL_HINTS = {
+    basic:    `Clear Ch.${_ch} Stage 1`,
+    special:  `Clear Ch.${_ch} Stage 3`,
+    ultimate: `Clear Ch.${_ch} Stage 4`,
+  };
+
+  ['basic','special','ultimate'].forEach(t => {
+    const btn = $(`btn-${t}`); if (!btn) return;
+    const sk  = B.pHero.skills[t];
+    const cd  = B.pCD[t];
+    const storyLocked = !isSkillPlayable(t);
+
+    // Toggle story-locked class and overlay
+    btn.classList.toggle('story-locked', storyLocked);
+    let lockEl = btn.querySelector('.skill-lock-overlay');
+    if (storyLocked) {
+      if (!lockEl) {
+        lockEl = document.createElement('div');
+        lockEl.className = 'skill-lock-overlay';
+        btn.appendChild(lockEl);
+      }
+      lockEl.innerHTML = `<span>🔒</span><small>${SKILL_HINTS[t]}</small>`;
+    } else if (lockEl) {
+      lockEl.remove();
+    }
+
+    // Disable if story-locked OR normal reasons
+    btn.disabled = storyLocked || B.turn !== 'player' || B.locked || B.over || cd > 0 || B.pParalyzed > 0;
+
+    let cdEl = btn.querySelector('.skill-cd-overlay');
+    if (cd > 0 && !storyLocked) {
+      if (!cdEl) { cdEl = document.createElement('div'); cdEl.className = 'skill-cd-overlay'; btn.appendChild(cdEl); }
+      cdEl.textContent = cd;
+    } else if (cdEl) cdEl.remove();
+  });
+  const atk = $('btn-attack');
+  if (atk) atk.disabled = B.turn !== 'player' || B.locked || B.over || B.pParalyzed > 0;
+}
+
+// ── LOG ──────────────────────────────────────────────────────
+function logMsg(msg, cls='ls') {
+  const log = $('battle-log');
+  const p   = document.createElement('p');
+  p.className = cls; p.textContent = msg;
+  log.appendChild(p);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── ARENA SKILL DAMAGE NORMALIZER ────────────────────────────
+// In arena all heroes use flat skill base damage so no hero hits
+// harder than another. Crit (1.75×) still rewards good timing.
+// type = 'attack'|'basic'|'special'|'ultimate'
+// originalDmg = the hero's own skill damage from HEROES data
+//   (negative = heal, 0 = guard — those are passed through unchanged)
+function arenaDmg(type, originalDmg) {
+  if (!B || B.mode !== 'arena') return originalDmg;
+  if (originalDmg <= 0) return originalDmg; // heal / guard: unchanged
+  switch (type) {
+    case 'attack':   return 100; // plain Q attack
+    case 'basic':    return 120; // W skill
+    case 'special':  return 180; // E skill
+    case 'ultimate': return 280; // R skill — bigger but not one-shot vs 1000 HP
+    default:         return originalDmg;
+  }
+}
+
+// ── DAMAGE CALC ──────────────────────────────────────────────
+function calcDmg(atk, def, base, crit) {
+  const isCrit = Math.random()*100 < crit;
+  const v = 0.88 + Math.random()*0.24;
+  let dmg = Math.floor(base * (atk/120) * v * (100/(100+def*0.6)));
+  if (isCrit) dmg = Math.floor(dmg*1.75);
+  return { dmg:Math.max(1,dmg), isCrit };
+}
+
+// ── APPROACH / RETREAT ANIMATION ─────────────────────────────
+// Cycles walk → run → sprint forward, then sprint → run → walk backward
+// Uses CSS translateX on the fighter-sprite-wrap
+
+// Approach: walk → run → sprint toward enemy, then cast. Snappy but visible.
+// Retreat:  sprint → run → walk → idle back to starting position.
+// Timings are kept tight so there is no perceived lag before the skill fires.
+
+const APPROACH_STEPS = [
+  { state:'walk',   x:40,  dur:160 },
+  { state:'run',    x:120, dur:140 },
+  { state:'sprint', x:220, dur:120 },
+  { state:'sprint', x:300, dur:0   },  // last step — arrive at enemy, cast immediately
+];
+const RETREAT_STEPS = [
+  { state:'sprint', x:180, dur:120 },
+  { state:'run',    x:90,  dur:140 },
+  { state:'walk',   x:30,  dur:160 },
+  { state:'idle',   x:0,   dur:0   },
+];
+
+function doApproach(who, onDone) {
+  const wrapEl = $(who === 'player' ? 'p-wrap' : 'e-wrap');
+  const dir    = who === 'player' ? 1 : -1;
+  const sc     = parseFloat(wrapEl.dataset.baseScale) || 1;
+  let idx = 0;
+  function next() {
+    if (idx >= APPROACH_STEPS.length) { onDone(); return; }
+    const step = APPROACH_STEPS[idx++];
+    setSprite(who, step.state);
+    wrapEl.style.transform = `scale(${sc}) translateX(${step.x * dir}px)`;
+    if (step.dur > 0) setTimeout(next, step.dur);
+    else onDone();
+  }
+  next();
+}
+
+function doRetreat(who, onDone) {
+  const wrapEl = $(who === 'player' ? 'p-wrap' : 'e-wrap');
+  const dir    = who === 'player' ? 1 : -1;
+  const sc     = parseFloat(wrapEl.dataset.baseScale) || 1;
+  let idx = 0;
+  function next() {
+    if (idx >= RETREAT_STEPS.length) {
+      wrapEl.style.transform = `scale(${sc}) translateX(0px)`;
+      if (onDone) onDone();
+      return;
+    }
+    const step = RETREAT_STEPS[idx++];
+    setSprite(who, step.state);
+    wrapEl.style.transform = `scale(${sc}) translateX(${step.x * dir}px)`;
+    if (step.dur > 0) setTimeout(next, step.dur);
+    else {
+      wrapEl.style.transform = `scale(${sc}) translateX(0px)`;
+      if (onDone) onDone();
+    }
+  }
+  next();
+}
+
+// ── SKILL EFFECT ─────────────────────────────────────────────
+// plainattack → approach → attack.png → shake → retreat  (no projectile)
+// basic/special/ultimate → approach → cast frames → travel → impact → retreat
+function spawnEffect(fromWho, skillType, onDone) {
+  const heroId = fromWho === 'player' ? B.playerHeroId : B.enemyHeroId;
+  const h      = getEntity(heroId);
+  const stage  = $('arena-stage');
+
+  // ── PLAIN ATTACK (ATTACK button) ────────────────────────────────────────────
+  // Ranged / mage heroes (selene, mira, elysia) stay in place and fire a
+  // glowing projectile toward the enemy.
+  // Melee heroes teleport to the enemy, strike, and teleport back (original).
+  if (skillType === 'plainattack') {
+    const RANGED_HEROES = ['selene', 'mira', 'elysia'];
+
+    if (RANGED_HEROES.includes(heroId)) {
+      // ── RANGED PLAIN ATTACK ──────────────────────────────────────────────
+      const wrapEl   = $(fromWho === 'player' ? 'p-wrap' : 'e-wrap');
+      const targetEl = $(fromWho === 'player' ? 'e-wrap' : 'p-wrap');
+
+      // 1. Play attack sprite
+      setSprite(fromWho, 'attack');
+
+      // Small wind-up delay before the projectile fires
+      setTimeout(() => {
+        // 2. Spawn a glowing orb / projectile from the attacker's center
+        const stR   = stage.getBoundingClientRect();
+        const fR    = wrapEl.getBoundingClientRect();
+        const tR    = targetEl.getBoundingClientRect();
+        const HALF  = 18; // half of orb size (36px orb)
+
+        // Start at attacker center, end at target center
+        const sx = fR.left - stR.left + fR.width  / 2 - HALF;
+        const sy = fR.top  - stR.top  + fR.height / 2 - HALF;
+        const ex = tR.left - stR.left + tR.width  / 2 - HALF;
+        const ey = tR.top  - stR.top  + tR.height / 2 - HALF;
+
+        // 3. Travel animation (easing cubic)
+        const DX  = ex - sx, DY = ey - sy;
+        // Angle the projectile faces (radians), used for arrow rotation
+        const travelAngle = Math.atan2(DY, DX); // radians, 0 = rightward
+        const DUR = Math.max(480, Math.min(720, Math.hypot(DX, DY) * 0.70));
+        let t0 = null;
+        const ease = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
+
+        // ── BUILD PROJECTILE ──────────────────────────────────────────────
+        const proj = document.createElement('div');
+        proj.style.cssText = `
+          position: absolute;
+          z-index: 62;
+          pointer-events: none;
+          left: ${sx}px;
+          top:  ${sy}px;
+        `;
+
+        if (heroId === 'selene') {
+          // Arrow: shaft (rectangle) + arrowhead (triangle via clip-path)
+          // Composed of two child divs inside a rotated wrapper.
+          // Arrow points RIGHT by default; we rotate to face the target.
+          const ARROW_W = 52, ARROW_H = 10;
+          proj.style.width  = ARROW_W + 'px';
+          proj.style.height = ARROW_H + 'px';
+          // Rotate to face travel direction; transform-origin at left-center (nock end)
+          proj.style.transformOrigin = '0 50%';
+          proj.style.transform = `rotate(${travelAngle}rad)`;
+
+          // Shaft
+          const shaft = document.createElement('div');
+          shaft.style.cssText = `
+            position: absolute;
+            left: 0; top: 50%;
+            transform: translateY(-50%);
+            width: 68%; height: 3px;
+            background: linear-gradient(90deg, #b8860b, #f0c040, #e8e0d0);
+            border-radius: 2px;
+            box-shadow: 0 0 6px rgba(240,192,64,0.7);
+          `;
+
+          // Arrowhead (triangle pointing right)
+          const head = document.createElement('div');
+          head.style.cssText = `
+            position: absolute;
+            right: 0; top: 50%;
+            transform: translateY(-50%);
+            width: 0; height: 0;
+            border-top:    5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left:   14px solid #c8a8ff;
+            filter: drop-shadow(0 0 5px rgba(200,168,255,1));
+          `;
+
+          // Moon glow at arrowhead
+          const glow = document.createElement('div');
+          glow.style.cssText = `
+            position: absolute;
+            right: -2px; top: 50%;
+            transform: translateY(-50%);
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(200,168,255,0.7) 45%, transparent 75%);
+            box-shadow: 0 0 10px 4px rgba(200,168,255,0.85);
+          `;
+
+          proj.appendChild(shaft);
+          proj.appendChild(head);
+          proj.appendChild(glow);
+
+        } else {
+          // Orb projectile for Mira and Elysia
+          const orbStyles = {
+            mira:   { bg: 'radial-gradient(circle, #ffffff 0%, #88ddff 30%, #0077cc 65%, transparent 100%)', shadow: '0 0 18px 6px rgba(0,191,255,0.9)',   size: 36 },
+            elysia: { bg: 'radial-gradient(circle, #ffffff 0%, #ffaaff 30%, #cc44cc 65%, transparent 100%)', shadow: '0 0 18px 6px rgba(255,136,255,0.9)', size: 36 },
+          };
+          const orb = orbStyles[heroId] || orbStyles.elysia;
+          proj.style.width        = orb.size + 'px';
+          proj.style.height       = orb.size + 'px';
+          proj.style.borderRadius = '50%';
+          proj.style.background   = orb.bg;
+          proj.style.boxShadow    = orb.shadow;
+        }
+
+        stage.appendChild(proj);
+
+        function step(ts) {
+          if (!t0) t0 = ts;
+          const t  = Math.min((ts - t0) / DUR, 1);
+          const e  = ease(t);
+          // Slight arc only for orb heroes; arrow travels flat (archers aim true)
+          const arc = heroId === 'selene' ? -Math.sin(t * Math.PI) * 14 : -Math.sin(t * Math.PI) * 28;
+          proj.style.left    = (sx + DX * e) + 'px';
+          proj.style.top     = (sy + DY * e + arc) + 'px';
+          proj.style.opacity = t > 0.80 ? String(1 - (t - 0.80) / 0.20) : '1';
+          if (heroId !== 'selene') {
+            const sc = 0.85 + e * 0.45;
+            proj.style.transform = `scale(${sc})`;
+          }
+          if (t < 1) { requestAnimationFrame(step); return; }
+
+          // 4. Impact
+          proj.remove();
+          spawnImpact(ex + HALF, ey + HALF, h.color || '#ffffff', stage);
+          hitShake(fromWho === 'player' ? 'enemy' : 'player');
+
+          // 5. Return sprite to idle
+          setSprite(fromWho, 'idle');
+          onDone();
+        }
+        requestAnimationFrame(step);
+      }, 150); // wind-up delay
+      return;
+    }
+
+    // ── MELEE PLAIN ATTACK (original — teleport) ────────────────────────────
+    const wrapEl  = $(fromWho === 'player' ? 'p-wrap' : 'e-wrap');
+    const targetEl = $(fromWho === 'player' ? 'e-wrap' : 'p-wrap');
+    const dir = fromWho === 'player' ? 1 : -1;
+
+    // Calculate how far to move to be right beside the enemy
+    const wrapRect   = wrapEl.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+    const gap = 10; // px gap between sprites
+    let moveX;
+    if (fromWho === 'player') {
+      moveX = (targetRect.left - wrapRect.right) + gap;
+    } else {
+      moveX = (targetRect.right - wrapRect.left) - gap;
+    }
+
+    // Instant teleport to enemy's side
+    wrapEl.style.transition = 'none';
+    setSprite(fromWho, 'attack');
+    wrapEl.style.transform = `translateX(${moveX}px)`;
+    // Hit the enemy right away
+    hitShake(fromWho === 'player' ? 'enemy' : 'player');
+    setTimeout(() => {
+      // Instant teleport back
+      wrapEl.style.transition = 'none';
+      wrapEl.style.transform = '';
+      setSprite(fromWho, 'idle');
+      onDone();
+    }, 350);
+    return;
+  }
+
+  const sk = h.skills[skillType];
+
+  // ── SKILL WITH NO FRAMES → quick shake only ──
+  if (!sk.frames || sk.frames.length === 0) {
+    doApproach(fromWho, () => {
+      hitShake(fromWho === 'player' ? 'enemy' : 'player');
+      setTimeout(() => doRetreat(fromWho, onDone), 200);
+    });
+    return;
+  }
+
+  // ── HEAL SKILL (damage < 0) → play frames on self, no approach/travel ──
+  if (sk.damage < 0) {
+    const stR  = stage.getBoundingClientRect();
+    const fR   = $(fromWho === 'player' ? 'p-wrap' : 'e-wrap').getBoundingClientRect();
+    const HALF = 110;
+    const cx   = fR.left - stR.left + fR.width/2  - HALF;
+    const cy   = fR.top  - stR.top  + fR.height/2 - HALF;
+
+    const fx = document.createElement('div');
+    fx.className = 'skill-fx';
+    fx.style.cssText = `left:${cx}px;top:${cy}px;opacity:0;`;
+    stage.appendChild(fx);
+
+    const FRAME_MS = 70;
+    let fi = 0;
+    function nextHealFrame() {
+      fx.innerHTML = `<img src="${sk.frames[fi]}" alt=""
+        style="filter:drop-shadow(0 0 22px ${h.color}) brightness(1.4);">`;
+      fx.style.opacity = '1';
+      fi++;
+      if (fi < sk.frames.length) {
+        setTimeout(nextHealFrame, FRAME_MS);
+      } else {
+        setTimeout(() => { fx.remove(); onDone(); }, 120);
+      }
+    }
+    nextHealFrame();
+    return;
+  }
+
+  // Approach first, then cast
+  doApproach(fromWho, () => {
+    const stR  = stage.getBoundingClientRect();
+    const pR   = $('p-wrap').getBoundingClientRect();
+    const eR   = $('e-wrap').getBoundingClientRect();
+    const fR   = fromWho === 'player' ? pR : eR;
+    const tR   = fromWho === 'player' ? eR : pR;
+    const HALF = 110;
+    const sx   = fR.left - stR.left + fR.width/2  - HALF;
+    const sy   = fR.top  - stR.top  + fR.height/2 - HALF;
+    const ex   = tR.left - stR.left + tR.width/2  - HALF;
+    const ey   = tR.top  - stR.top  + tR.height/2 - HALF;
+
+    const fx = document.createElement('div');
+    fx.className = 'skill-fx';
+    // Skill FX faces the direction it travels.
+    // We derive the flip from getSpriteFlip using the 'attack' state,
+    // which respects flipStates overrides (needed for story enemies like AshWolf).
+    // Enemy attacks travel LEFT  → flip when the sprite naturally faces right in 'attack' state.
+    // Player attacks travel RIGHT → flip when the sprite naturally faces left in 'attack' state.
+    let fxFlip = false;
+    if (fromWho === 'enemy') {
+      // getSpriteFlip returns -1 when the enemy sprite needs no flip (already faces left/player).
+      // It returns +1 when the enemy sprite needs a flip (naturally faces right).
+      // For the FX we want to flip if the sprite naturally faces right.
+      const sprFlip = getSpriteFlip('enemy', B.enemyHeroId, 'attack');
+      fxFlip = sprFlip === 1; // sprite faces right → FX must flip to face left (toward player)
+    } else {
+      const sprFlip = getSpriteFlip('player', B.playerHeroId, 'attack');
+      fxFlip = sprFlip === -1; // sprite faces left → FX must flip to face right (toward enemy)
+    }
+    fx.style.cssText = `left:${sx}px;top:${sy}px;opacity:0;` +
+      (fxFlip ? 'transform:scaleX(-1);' : '');
+    stage.appendChild(fx);
+
+    // Frame rate: 100ms per frame — natural skill animation pacing
+    const FRAME_MS = 100;
+    let fi = 0;
+    const totalFrames = sk.frames.length;
+    function nextFrame() {
+      // Move the effect progressively toward the target as frames play.
+      // Frames cover the first 70% of the distance; travel() handles the rest.
+      const progress = (fi / totalFrames) * 0.7;
+      const cx = sx + (ex - sx) * progress;
+      const cy = sy + (ey - sy) * progress;
+      fx.style.left = cx + 'px';
+      fx.style.top  = cy + 'px';
+      fx.innerHTML = `<img src="${sk.frames[fi]}" alt=""
+        style="filter:drop-shadow(0 0 22px ${h.color}) brightness(1.25);">`;
+      fx.style.opacity = '1';
+      fi++;
+      if (fi < totalFrames) {
+        setTimeout(nextFrame, FRAME_MS);
+      } else {
+        // Travel the remaining 30% to the target
+        travel(fx, cx, cy, ex, ey, h.color, fromWho, sk, fxFlip, () => {
+          // After impact: retreat
+          doRetreat(fromWho, onDone);
+        }, stage, onDone._impact || null);
+      }
+    }
+    nextFrame();
+  });
+}
+
+function travel(fx, sx, sy, ex, ey, color, fromWho, sk, fxFlip, onDone, stage, onImpact) {
+  const dx = ex-sx, dy = ey-sy;
+  // Travel speed: moderate — feels weighty and deliberate
+  const dur = Math.max(280, Math.min(480, Math.hypot(dx,dy) * 0.50));
+  fx.innerHTML = `<img src="${sk.frames[sk.frames.length-1]}" alt=""
+    style="width:100%;height:100%;object-fit:contain;
+    filter:drop-shadow(0 0 26px ${color}) brightness(1.3);">`;
+  let t0 = null;
+  const HALF = 110;
+  const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+  function step(ts) {
+    if (!t0) t0 = ts;
+    const t = Math.min((ts-t0)/dur, 1), e = ease(t), sc = 1 + e * 0.3;
+    fx.style.left      = (sx+dx*e)+'px';
+    fx.style.top       = (sy+dy*e)+'px';
+    fx.style.transform = fxFlip ? `scaleX(-1) scale(${sc})` : `scale(${sc})`;
+    fx.style.opacity   = t > 0.78 ? String(1-(t-0.78)/0.22) : '1';
+    if (t < 1) { requestAnimationFrame(step); return; }
+    fx.remove();
+    spawnImpact(ex+HALF, ey+HALF, color, stage);
+    hitShake(fromWho === 'player' ? 'enemy' : 'player');
+    // ── IMPACT: apply damage & show floating number immediately ──
+    if (onImpact) onImpact();
+    onDone();
+  }
+  requestAnimationFrame(step);
+}
+
+function spawnImpact(x, y, color, stage) {
+  const b = document.createElement('div');
+  b.className = 'impact-burst';
+  b.style.cssText = `left:${x}px;top:${y}px;background:radial-gradient(circle,${color} 0%,${color}55 45%,transparent 70%);`;
+  stage.appendChild(b);
+  b.addEventListener('animationend', () => b.remove(), {once:true});
+}
+
+function hitShake(who) {
+  const el = $(who === 'player' ? 'p-wrap' : 'e-wrap'); if (!el) return;
+  // Sync --sc so the keyframe preserves the sprite's spriteScale during the shake
+  const sc = el.dataset.baseScale || '1';
+  el.style.setProperty('--sc', sc);
+  el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+  el.addEventListener('animationend', () => el.classList.remove('shake'), {once:true});
+}
+
+function spawnDmg(who, value, isCrit=false, isHeal=false) {
+  const wrap = $(who === 'player' ? 'p-wrap' : 'e-wrap');
+  const n    = document.createElement('div');
+  n.className = 'dmg-num' + (isCrit?' crit':'') + (isHeal?' heal':'');
+  if (isHeal)        n.textContent = '+'+Math.abs(value);
+  else if (value===0){ n.style.color='#888'; n.textContent='MISS'; }
+  else {
+    n.textContent = (isCrit ? '⚡ ' : '')+value;
+    n.style.color = isCrit ? '#ffdd00'
+      : (getEntity(who==='player'?B.enemyHeroId:B.playerHeroId)||{color:'#ff8888'}).color;
+  }
+  wrap.appendChild(n);
+  n.addEventListener('animationend', ()=>n.remove(), {once:true});
+}
+
+function applyDmg(target, amount) {
+  const guarded = target==='enemy' ? B.eGuard : B.pGuard;
+  const r = guarded ? Math.floor(amount*.4) : amount;
+  if (target==='enemy') B.eHp = Math.max(0, B.eHp-r);
+  else                  B.pHp = Math.max(0, B.pHp-r);
+  return r;
+}
+function applyHeal(target, amount) {
+  if (target==='player') B.pHp = Math.min(B.pMaxHp, B.pHp+amount);
+  else                   B.eHp = Math.min(B.eMaxHp, B.eHp+amount);
+}
+
+// ── USE PLAIN ATTACK (ATTACK button / Q key) — no skill frames ────────────
+function useAttack() {
+  if (B.turn!=='player'||B.locked||B.over) return;
+
+  if (B.pFrozen > 0) {
+    B.pFrozen--;
+    renderHUD();
+    if (B.pFrozen > 0) { logMsg('❄ Still frozen — cannot act!','ls'); return; }
+    logMsg('❄ Thawed! You can act now.','ls');
+  }
+
+  B.locked = true;
+  updateSkillBtns();
+  spawnEffect('player', 'plainattack', () => {
+    const sk = B.pHero.skills.basic; // use basic damage stats but no effect
+    const boost = B.pBoost > 0 ? 1.3 : 1;
+    const {dmg, isCrit} = calcDmg(B.pAtk * boost, B.eDef, arenaDmg('attack', sk.damage), B.pCrit);
+    const r = applyDmg('enemy', dmg); spawnDmg('enemy', r, isCrit);
+    logMsg(`⚔ ${B.pHero.name} attacks! Deals ${r}${isCrit?' (CRIT!)':''} dmg.`, 'lp');
+    // Q attack: 30% chance lang mag-apply og status — dili guaranteed every hit
+    if (Math.random() < 0.30) {
+      if (B.playerHeroId==='aeron') { B.eBurning=Math.max(B.eBurning,1); logMsg('🔥 Enemy burns!','lp'); }
+      if (B.playerHeroId==='kael')  { B.eParalyzed=Math.max(B.eParalyzed,1); logMsg('⚡ Enemy paralyzed!','lp'); }
+    }
+    tickCD('player'); renderHUD();
+    checkEnd(()=>{ tickStatus('enemy'); renderHUD();
+      checkEnd(()=>{ tickCD('player');
+        B.turn='enemy'; B.locked=false; renderHUD();
+        setTimeout(enemyAI, 900+Math.random()*400);
+      });
+    });
+  });
+}
+
+// ── USE SKILL (PLAYER) ───────────────────────────────────────
+function useSkill(type) {
+  if (B.turn!=='player'||B.locked||B.over) return;
+
+  // Block locked skills in both arena AND story mode
+  // (admins bypass this — Game.isAdmin() check is inside the same storage read)
+  {
+    const skillUL  = JSON.parse(safeLocalStorage.getItem('tenfold_skills_' + (Game.user && Game.user.userID || 'demo')) || '{}');
+    const unlocked = Game.isAdmin() ? ['basic','special','ultimate'] : ((skillUL[B.playerHeroId]) || []);
+    if (!unlocked.includes(type)) {
+      const CH_HERO = {aeron:1,lyra:2,kael:3,riven:4,selene:5,draven:6,mira:7,orion:8,brutus:9,elysia:10};
+      const chNum = CH_HERO[B.playerHeroId] || 1;
+      const hints = { basic:`Clear Chapter ${chNum} Stage 1`, special:`Clear Chapter ${chNum} Stage 3`, ultimate:`Clear Chapter ${chNum} Stage 4` };
+      logMsg(`🔒 ${B.pHero.skills[type].name} is locked! ${hints[type]} in Story Mode to unlock.`, 'ls');
+      return;
+    }
+  }
+
+  // Tick down freeze at start of player turn (not block — just decrement)
+  if (B.pFrozen > 0) {
+    B.pFrozen--;
+    renderHUD();
+    if (B.pFrozen > 0) { logMsg('❄ Still frozen — cannot act!','ls'); return; }
+    logMsg('❄ Thawed! You can act now.','ls');
+    // Don't return — let them act
+  }
+
+  const sk = B.pHero.skills[type];
+  if (B.pCD[type]>0) { logMsg(`⏳ ${sk.name} on cooldown (${B.pCD[type]})`, 'ls'); return; }
+  B.locked = true;
+  if (sk.cooldown>0) B.pCD[type] = sk.cooldown;
+  updateSkillBtns();
+  // doApproach handles walk→run→sprint→attack sprite switching
+  spawnEffect('player', type, () => execPlayer(type, sk));
+}
+
+function execPlayer(type, sk) {
+  const ph = B.pHero; let extra='';
+  const boost = B.pBoost>0 ? 1.3 : 1;
+
+  if (type==='basic') {
+    const {dmg,isCrit} = calcDmg(B.pAtk*boost, B.eDef, arenaDmg('basic', sk.damage), B.pCrit);
+    const r = applyDmg('enemy',dmg); spawnDmg('enemy',r,isCrit);
+    renderHUD();
+    logMsg(`⚔ ${ph.name} uses ${sk.name}! Deals ${r}${isCrit?' (CRIT!)':''} dmg.`, 'lp');
+    if (B.playerHeroId==='aeron') { B.eBurning=Math.max(B.eBurning,2); extra=' 🔥 Enemy burns!'; }
+    if (B.playerHeroId==='kael')  { B.eParalyzed=Math.max(B.eParalyzed,1); extra=' ⚡ Enemy paralyzed!'; }
+  } else if (type==='special') {
+    if (sk.damage<0) {
+      // Arena mode: cap heal at 200 HP so it's not game-breaking in PvP
+      const h = B.mode === 'arena' ? 200 : Math.abs(sk.damage);
+      applyHeal('player',h); spawnDmg('player',h,false,true);
+      logMsg(`💧 ${ph.name} uses ${sk.name}! +${h} HP.`,'lh');
+    } else if (sk.damage===0) {
+      B.pGuard = true; extra=' 🛡 Guard raised!';
+      logMsg(`🛡 ${ph.name} uses ${sk.name}!`, 'lp');
+    } else {
+      const {dmg,isCrit} = calcDmg(B.pAtk*boost, B.eDef, arenaDmg('special', sk.damage), B.pCrit+5);
+      const r = applyDmg('enemy',dmg); spawnDmg('enemy',r,isCrit);
+      logMsg(`✨ ${ph.name} uses ${sk.name}! Deals ${r}${isCrit?' (CRIT!)':''} dmg.`, 'lp');
+      if (B.playerHeroId==='lyra')   { B.eFrozen=1;  extra=' ❄ Enemy FROZEN!'; }
+      if (B.playerHeroId==='aeron')  { B.eBurning=Math.max(B.eBurning,2); extra=' 🔥'; }
+      if (B.playerHeroId==='kael')   { B.eParalyzed=Math.max(B.eParalyzed,2); extra=' ⚡ Enemy paralyzed!'; }
+      if (B.playerHeroId==='selene') { B.pBoost=2; extra=' 🌙 Power surge!'; }
+      if (B.playerHeroId==='draven') { B.pBoost=2; extra=' 🌑 Stepping from the shadows!'; }
+    }
+  } else {
+    const {dmg,isCrit} = calcDmg(B.pAtk*1.5*boost, B.eDef, arenaDmg('ultimate', sk.damage), B.pCrit+10);
+    const r = applyDmg('enemy',dmg); spawnDmg('enemy',r,isCrit);
+    logMsg(`💥 ${ph.name} UNLEASHES ${sk.name}!! ${r}${isCrit?' (CRIT!!)':''} MASSIVE DMG!`, 'lp');
+    // ── ULTIMATE STATUS EFFECTS (player) ──────────────────────
+    // Aeron — Phoenix Reign: wraps enemy in phoenix flames (Burn 3)
+    if (B.playerHeroId==='aeron')  { B.eBurning=Math.max(B.eBurning,3); extra=' 🔥🔥 Enemy engulfed in phoenix flames! (Burn 3)'; }
+    // Lyra — Absolute Zero: flash-freezes the enemy solid (Frozen 2)
+    if (B.playerHeroId==='lyra')   { B.eFrozen=Math.max(B.eFrozen,2); extra=' ❄❄ Enemy frozen solid! (Frozen 2)'; }
+    // Kael — Storm Judgment: multiple lightning strikes paralyze (Paralyzed 3)
+    if (B.playerHeroId==='kael')   { B.eParalyzed=Math.max(B.eParalyzed,3); extra=' ⚡⚡ STORM JUDGMENT! Enemy paralyzed! (Paralyzed 3)'; }
+    // Riven — Mountain Collapse: earth shockwave dazes and buries (Paralyzed 2 + Burn 1)
+    if (B.playerHeroId==='riven')  { B.eParalyzed=Math.max(B.eParalyzed,2); B.eBurning=Math.max(B.eBurning,1); extra=' 💥 MOUNTAIN COLLAPSE! Enemy buried and dazed! (Stun 2 + Burn 1)'; }
+    // Selene — Moonfall: lunar overload blinds enemy hard (Paralyzed 2 + Burn 2)
+    if (B.playerHeroId==='selene') { B.eParalyzed=Math.max(B.eParalyzed,2); B.eBurning=Math.max(B.eBurning,2); extra=' 🌙✨ MOONFALL! Enemy blinded by lunar energy! (Paralyzed 2 + Burn 2)'; }
+    // Draven — Nightmare Execution: rapid dark strikes disorient and trap (Paralyzed 2 + Frozen 1)
+    if (B.playerHeroId==='draven') { B.eParalyzed=Math.max(B.eParalyzed,2); B.eFrozen=Math.max(B.eFrozen,1); extra=' 💀 NIGHTMARE EXECUTION! Enemy trapped in darkness! (Paralyzed 2 + Frozen 1)'; }
+    // Mira — Ocean's Wrath: tidal surge heals Mira and drowns enemy (Heal + Frozen 1)
+    if (B.playerHeroId==='mira')   { const h=150; applyHeal('player',h); spawnDmg('player',h,false,true); B.eFrozen=Math.max(B.eFrozen,1); extra=` 🌊 OCEAN'S WRATH! +${h} HP & enemy submerged! (Frozen 1)`; }
+    // Orion — Tempest Dance: massive wind burst launches enemy into the air (Paralyzed 2)
+    if (B.playerHeroId==='orion')  { B.eParalyzed=Math.max(B.eParalyzed,2); extra=' 🌪 TEMPEST DANCE! Enemy launched airborne! (Paralyzed 2)'; }
+    // Brutus — Titan Breaker: crushing charge shatters guard and stuns (Guard Break + Paralyzed 2)
+    if (B.playerHeroId==='brutus') { B.eGuard=false; B.eParalyzed=Math.max(B.eParalyzed,2); extra=' 🛡💥 TITAN BREAKER! Guard shattered! Enemy crushed! (Guard Break + Paralyzed 2)'; }
+    // Elysia — Celestial Judgment: arcane overload burns and paralyzes (Burn 2 + Paralyzed 2)
+    if (B.playerHeroId==='elysia') { B.eBurning=Math.max(B.eBurning,2); B.eParalyzed=Math.max(B.eParalyzed,2); extra=' ✨💥 CELESTIAL JUDGMENT! Arcane overload! (Burn 2 + Paralyzed 2)'; }
+  }
+  if (extra) logMsg(extra,'lp');
+  // doRetreat (called inside spawnEffect) handles sprint→run→walk→idle
+  checkEnd(()=>{ tickStatus('enemy'); renderHUD();
+    checkEnd(()=>{ tickCD('player');
+      B.turn='enemy'; B.locked=false; renderHUD();
+      setTimeout(enemyAI, 900+Math.random()*400);
+    });
+  });
+}
+
+// ── ENEMY AI ─────────────────────────────────────────────────
+function enemyAI() {
+  if (B.over) return;
+
+  // Handle frozen — skip turn but tick down
+  if (B.eFrozen > 0) {
+    B.eFrozen--;
+    logMsg(`❄ ${B.eHero.name} is frozen! (${B.eFrozen} turns left)`,'le');
+    tickCD('enemy');
+    startPlayerTurn();
+    return;
+  }
+
+  // Handle paralyzed — guaranteed turn skip
+  if (B.eParalyzed > 0) {
+    B.eParalyzed--;
+    logMsg(`⚡ ${B.eHero.name} is paralyzed and can't move! (${B.eParalyzed} turns left)`,'le');
+    tickStatus('enemy');
+    tickCD('enemy');
+    startPlayerTurn();
+    return;
+  }
+
+  const type = pickEnemySkill();
+  const sk   = B.eHero.skills[type];
+  logMsg(`${B.eHero.name} uses ${sk.name}…`,'le');
+  B.locked = true;
+  if (sk.cooldown > 0) B.eCD[type] = sk.cooldown;
+  renderHUD();
+  updateSkillBtns();
+  spawnEffect('enemy', type, () => execEnemy(type, sk));
+}
+
+function pickEnemySkill() {
+  const hp  = B.eHp / B.eMaxHp;
+  const rng = Math.random();
+
+  // In story mode, enemy skill availability mirrors the player's unlock progression:
+  //   stage 1 → basic only
+  //   stage 3+ → special unlocked
+  //   stage 4+ → ultimate unlocked
+  // In arena mode (hero vs hero) all enemy skills are always available.
+  const stageNum = B.stage || 0;
+  const canSpecial  = B.mode !== 'story' || stageNum >= 3;
+  const canUltimate = B.mode !== 'story' || stageNum >= 4;
+
+  // ── ULTIMATE — same conditions as player: only use when meaningful ──
+  // Don't spam on turn 1. Require either low HP OR enough turns have passed.
+  if (canUltimate && B.eCD.ultimate === 0) {
+    const urgentHp   = hp < 0.35;              // desperate — use always
+    const advantaged = hp > 0.6 && rng < 0.25; // healthy — 25% chance
+    const midGame    = B.turnCount >= 3 && rng < 0.40; // turn 3+ — 40% chance
+    if (urgentHp || advantaged || midGame) return 'ultimate';
+  }
+
+  // ── SPECIAL — use situationally, not blindly 60% every turn ──
+  if (canSpecial && B.eCD.special === 0) {
+    const sp = B.eHero.skills.special;
+    // Heal special: use when below 50% HP
+    if (sp.damage < 0 && hp < 0.50) return 'special';
+    // Guard special: use ~25% of the time (not spammy)
+    if (sp.damage === 0 && rng < 0.25) return 'special';
+    // Damage special: use 45% of the time (not always)
+    if (sp.damage > 0 && rng < 0.45) return 'special';
+  }
+
+  // ── BASIC fallback ──
+  return 'basic';
+}
+
+function execEnemy(type, sk) {
+  const eh=B.eHero; let extra='';
+  const boost = B.eBoost>0?1.3:1;
+  const eElem = eh.element || '';
+  const eId   = B.enemyHeroId;
+
+  if (type==='basic') {
+    const {dmg,isCrit} = calcDmg(B.eAtk*boost, B.pDef, arenaDmg('basic', sk.damage), B.eCrit);
+    const r=applyDmg('player',dmg); spawnDmg('player',r,isCrit);
+    logMsg(`${eh.name} uses ${sk.name}! You take ${r}${isCrit?' (CRIT!)':''}.`,'le');
+    // Basic skill: 30% chance lang mag-apply og status — dili guaranteed every hit
+    if (Math.random() < 0.30) {
+      if (eElem==='Fire')      { B.pBurning=Math.max(B.pBurning,1); extra=' 🔥 You burn!'; }
+      if (eElem==='Lightning') { B.pParalyzed=Math.max(B.pParalyzed,1); extra=' ⚡ You are paralyzed!'; }
+      if (eId==='kael')        { B.pParalyzed=Math.max(B.pParalyzed,1); extra=' ⚡ You are paralyzed!'; }
+    }
+  } else if (type==='special') {
+    if (sk.damage<0) {
+      // Arena mode: cap heal at 200 HP so it's not game-breaking in PvP
+      const h = B.mode === 'arena' ? 200 : Math.abs(sk.damage);
+      applyHeal('enemy',h); spawnDmg('enemy',h,false,true);
+      logMsg(`${eh.name} uses ${sk.name}! Heals ${h} HP.`,'le');
+    } else if (sk.damage===0) {
+      B.eGuard = true; extra=' 🛡 Guard raised!';
+      logMsg(`🛡 ${eh.name} uses ${sk.name}!`, 'le');
+    } else {
+      const {dmg,isCrit} = calcDmg(B.eAtk*boost, B.pDef, arenaDmg('special', sk.damage), B.eCrit+5);
+      const r=applyDmg('player',dmg); spawnDmg('player',r,isCrit);
+      logMsg(`${eh.name} uses ${sk.name}! You take ${r}${isCrit?' (CRIT!)':''}.`,'le');
+      // Status effects by element
+      if (eElem==='Fire')      { B.pBurning=Math.max(B.pBurning,2); extra=' 🔥 Scorching flames!'; }
+      if (eElem==='Ice')       { B.pFrozen=1; extra=' ❄ You are FROZEN!'; }
+      if (eElem==='Lightning') { B.pParalyzed=Math.max(B.pParalyzed,2); extra=' ⚡ You are paralyzed!'; }
+      // Hero-specific overrides
+      if (eId==='lyra')   { B.pFrozen=1; extra=' ❄ You are FROZEN!'; }
+      if (eId==='kael')   { B.pParalyzed=Math.max(B.pParalyzed,2); extra=' ⚡ You are paralyzed!'; }
+      if (eId==='selene') { B.eBoost=2; extra=' 🌙 Power surge!'; }
+      if (eId==='draven') { B.eBoost=2; extra=' 🌑 Stepping from the shadows!'; }
+    }
+  } else {
+    const {dmg,isCrit} = calcDmg(B.eAtk*1.2*boost, B.pDef, arenaDmg('ultimate', sk.damage), B.eCrit+10);
+    const r=applyDmg('player',dmg); spawnDmg('player',r,isCrit);
+    logMsg(`💥 ${eh.name} UNLEASHES ${sk.name}!! You take ${r}${isCrit?' (CRIT!!)':''} MASSIVE DMG!`,'le');
+    // Status effects by element
+    if (eElem==='Fire')      { B.pBurning=Math.max(B.pBurning,3); extra=' 🔥🔥 Burning inferno!'; }
+    if (eElem==='Ice')       { B.pFrozen=2; extra=' ❄ Frozen solid!'; }
+    if (eElem==='Lightning') { B.pParalyzed=Math.max(B.pParalyzed,3); extra=' ⚡⚡ STORM JUDGMENT!'; }
+    // ── ULTIMATE STATUS EFFECTS (enemy) ──────────────────────
+    // Aeron — Phoenix Reign: wraps player in phoenix flames (Burn 3)
+    if (eId==='aeron')  { B.pBurning=Math.max(B.pBurning,3); extra=' 🔥🔥 You are engulfed in phoenix flames! (Burn 3)'; }
+    // Lyra — Absolute Zero: flash-freezes the player solid (Frozen 2)
+    if (eId==='lyra')   { B.pFrozen=Math.max(B.pFrozen,2); extra=' ❄❄ You are frozen solid! (Frozen 2)'; }
+    // Kael — Storm Judgment: multiple lightning strikes paralyze (Paralyzed 3)
+    if (eId==='kael')   { B.pParalyzed=Math.max(B.pParalyzed,3); extra=' ⚡⚡ STORM JUDGMENT! You are paralyzed! (Paralyzed 3)'; }
+    // Riven — Mountain Collapse: earth shockwave dazes and buries (Paralyzed 2 + Burn 1)
+    if (eId==='riven')  { B.pParalyzed=Math.max(B.pParalyzed,2); B.pBurning=Math.max(B.pBurning,1); extra=' 💥 MOUNTAIN COLLAPSE! You are buried and dazed! (Stun 2 + Burn 1)'; }
+    // Selene — Moonfall: lunar overload blinds player hard (Paralyzed 2 + Burn 2)
+    if (eId==='selene') { B.pParalyzed=Math.max(B.pParalyzed,2); B.pBurning=Math.max(B.pBurning,2); extra=' 🌙✨ MOONFALL! You are blinded by lunar energy! (Paralyzed 2 + Burn 2)'; }
+    // Draven — Nightmare Execution: rapid dark strikes disorient and trap (Paralyzed 2 + Frozen 1)
+    if (eId==='draven') { B.pParalyzed=Math.max(B.pParalyzed,2); B.pFrozen=Math.max(B.pFrozen,1); extra=' 💀 NIGHTMARE EXECUTION! You are trapped in darkness! (Paralyzed 2 + Frozen 1)'; }
+    // Mira — Ocean's Wrath: tidal surge heals Mira and drowns player (Heal + Frozen 1)
+    if (eId==='mira')   { const h=150; applyHeal('enemy',h); spawnDmg('enemy',h,false,true); B.pFrozen=Math.max(B.pFrozen,1); extra=` 🌊 OCEAN'S WRATH! Mira heals ${h} HP & you are submerged! (Frozen 1)`; }
+    // Orion — Tempest Dance: massive wind burst launches player into the air (Paralyzed 2)
+    if (eId==='orion')  { B.pParalyzed=Math.max(B.pParalyzed,2); extra=' 🌪 TEMPEST DANCE! You are launched airborne! (Paralyzed 2)'; }
+    // Brutus — Titan Breaker: crushing charge shatters guard and stuns (Guard Break + Paralyzed 2)
+    if (eId==='brutus') { B.pGuard=false; B.pParalyzed=Math.max(B.pParalyzed,2); extra=' 🛡💥 TITAN BREAKER! Your guard is shattered! You are crushed! (Guard Break + Paralyzed 2)'; }
+    // Elysia — Celestial Judgment: arcane overload burns and paralyzes (Burn 2 + Paralyzed 2)
+    if (eId==='elysia') { B.pBurning=Math.max(B.pBurning,2); B.pParalyzed=Math.max(B.pParalyzed,2); extra=' ✨💥 CELESTIAL JUDGMENT! Arcane overload! (Burn 2 + Paralyzed 2)'; }
+  }
+  if (extra) logMsg(extra,'le');
+  // doRetreat handles sprint→run→walk→idle for enemy too
+  checkEnd(()=>{ tickStatus('player'); renderHUD();
+    checkEnd(()=>{ tickCD('enemy');
+      B.turnCount++;
+      startPlayerTurn();
+    });
+  });
+}
+
+// ── STATUS TICKS ─────────────────────────────────────────────
+function tickStatus(who) {
+  if (who==='player'&&B.pBurning>0) {
+    const d=Math.floor(B.pMaxHp*.05);
+    B.pHp=Math.max(0,B.pHp-d); B.pBurning--;
+    logMsg(`🔥 ${B.pHero.name} takes ${d} burn!`,'le'); spawnDmg('player',d);
+  }
+  if (who==='enemy'&&B.eBurning>0) {
+    const d=Math.floor(B.eMaxHp*.05);
+    B.eHp=Math.max(0,B.eHp-d); B.eBurning--;
+    logMsg(`🔥 ${B.eHero.name} takes ${d} burn!`,'lp'); spawnDmg('enemy',d);
+  }
+  if (who==='player'&&B.pFrozen>0)    B.pFrozen--;
+  if (who==='enemy'&&B.eFrozen>0)     B.eFrozen--;
+  if (who==='player'&&B.pParalyzed>0) B.pParalyzed--;
+  if (who==='enemy'&&B.eParalyzed>0)  B.eParalyzed--;
+  if (who==='player') { B.pGuard=false; if(B.pBoost>0)B.pBoost--; }
+  if (who==='enemy')  { B.eGuard=false; if(B.eBoost>0)B.eBoost--; }
+}
+function tickCD(who) {
+  const cds = who==='player'?B.pCD:B.eCD;
+  for (const k in cds) if(cds[k]>0) cds[k]--;
+}
+
+// ── CHECK END ────────────────────────────────────────────────
+function checkEnd(onContinue) {
+  renderHUD();
+  if (B.eHp<=0&&!B.over) { B.over=true; B.locked=true; const s=$('e-sprite'); if(s)s.classList.add('dead'); setTimeout(()=>showResult('win'),1300); return; }
+  if (B.pHp<=0&&!B.over) { B.over=true; B.locked=true; const s=$('p-sprite'); if(s)s.classList.add('dead'); setTimeout(()=>showResult('lose'),1300); return; }
+  if (onContinue) onContinue();
+}
+
+// ── SHOW RESULT ──────────────────────────────────────────────
+async function showResult(outcome) {
+  const won = outcome==='win';
+  const pts = won?100:10;
+  $('result-label').textContent = won?'VICTORY!':'DEFEATED';
+  $('result-label').className   = 'result-label '+(won?'win':'lose');
+  $('result-sub').textContent   = won?`You defeated ${B.eHero.name}!`:`${B.eHero.name} has bested you.`;
+  $('result-pts-num').textContent = '+'+pts;
+  $('result-hero-info').textContent = `${B.pHero.name} · ${B.map.name} · Turn ${B.turnCount+1}`;
+  $('result-overlay').classList.add('show');
+
+  // Do NOT optimistically write the score before the server confirms it.
+  // This prevents temporary/different totals across PC, browser and APK.
+  const battleID = 'BAT_' + user.userID + '_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+  const battleDate = new Date().toISOString();
+
+  const bl = JSON.parse(safeLocalStorage.getItem('tenfold_battles_'+user.userID)||'[]');
+  bl.unshift({battleID,heroID:B.playerHeroId,heroName:B.pHero.name,enemyHeroID:B.enemyHeroId,
+    enemyHeroName:B.eHero.name,result:outcome,battleDate:battleDate,
+    storyChapter: B.mode==='story' ? B.chapter : 0});
+  safeLocalStorage.setItem('tenfold_battles_'+user.userID, JSON.stringify(bl.slice(0,20)));
+
+  // ── LEVEL / XP SYSTEM ────────────────────────────────────────
+  // Story levels and Arena levels are COMPLETELY SEPARATE:
+  //   tenfold_levels_<uid>       → story milestone levels (Lv1-50)
+  //   tenfold_arena_levels_<uid> → arena XP-based levels  (starts Lv1)
+  //
+  // Story win  → set story level to the stage milestone (never downgrade).
+  //              Arena level is NOT touched.
+  // Arena/loss → XP accumulates only in the arena level store.
+  //              Story level is NOT touched.
+  //
+  // Story level table (for reference):
+  //   Ch | St1 | St2 | St3 | St4 | St5(Boss)
+  //    1 |  1  |  2  |  3  |  4  |   5
+  //    2 |  6  |  7  |  8  |  9  |  10
+  //    3 | 11  | 12  | 13  | 14  |  15
+  //    4 | 16  | 17  | 18  | 19  |  20
+  //    5 | 21  | 22  | 23  | 24  |  25
+  //    6 | 26  | 27  | 28  | 29  |  30
+  //    7 | 31  | 32  | 33  | 34  |  35
+  //    8 | 36  | 37  | 38  | 39  |  40
+  //    9 | 41  | 42  | 43  | 44  |  45
+  //   10 | 46  | 47  | 48  | 49  |  50
+
+  let lv, xp;
+  if (B.mode === 'story' && won) {
+    // ── STORY WIN: milestone-based level update ──
+    const storyLvls = JSON.parse(safeLocalStorage.getItem('tenfold_levels_'+user.userID)||'{}');
+    const prevStoryLv = storyLvls[B.playerHeroId] || 1;
+    const target = getChapterStageLv(B.chapter, B.stage);
+    lv = Math.max(prevStoryLv, target);   // never downgrade
+    xp = storyLvls[B.playerHeroId+'_xp'] || 0; // keep existing story XP
+    storyLvls[B.playerHeroId]        = lv;
+    storyLvls[B.playerHeroId+'_xp']  = xp;
+    safeLocalStorage.setItem('tenfold_levels_'+user.userID, JSON.stringify(storyLvls));
+
+    // Sync story level to server
+    apiCall({ action:'setHeroLevel', userID:user.userID,
+              heroID:B.playerHeroId, level:lv, xp:xp });
+
+    if (lv > prevStoryLv) {
+      const n=document.createElement('div'); n.className='lvl-up-notif';
+      n.textContent=`⬆ ${B.pHero.name} reached Story Level ${lv}!`;
+      $('arena-stage').appendChild(n);
+      n.addEventListener('animationend',()=>n.remove(),{once:true});
+    }
+  } else {
+    // ── ARENA / LOSS: XP accumulation in the arena level store ──
+    const arenaLvls = JSON.parse(safeLocalStorage.getItem('tenfold_arena_levels_'+user.userID)||'{}');
+    const prevArenaLv = arenaLvls[B.playerHeroId] || 1;
+    xp = (arenaLvls[B.playerHeroId+'_xp'] || 0) + pts;
+    lv = prevArenaLv;
+    while (xp >= lv * 100) { xp -= lv * 100; lv++; }
+    arenaLvls[B.playerHeroId]        = lv;
+    arenaLvls[B.playerHeroId+'_xp']  = xp;
+    safeLocalStorage.setItem('tenfold_arena_levels_'+user.userID, JSON.stringify(arenaLvls));
+
+    // Sync arena level to server (uses a separate action flag)
+    apiCall({ action:'setHeroLevel', userID:user.userID,
+              heroID:B.playerHeroId, level:lv, xp:xp, levelType:'arena' });
+
+    if (lv > prevArenaLv) {
+      const n=document.createElement('div'); n.className='lvl-up-notif';
+      n.textContent=`⬆ ${B.pHero.name} reached Arena Level ${lv}!`;
+      $('arena-stage').appendChild(n);
+      n.addEventListener('animationend',()=>n.remove(),{once:true});
+    }
+  }
+
+  // ── STORY MODE: save progress & build result buttons ──────
+  if (B.mode==='story' && won) {
+    // Save stage completion to safeLocalStorage for story.html to pick up
+    const starsEarned = B.pHp > B.pMaxHp*0.5 ? 3 : B.pHp > B.pMaxHp*0.25 ? 2 : 1;
+    safeSessionStorage.setItem('tenfold_story_return', JSON.stringify({
+      chNum: B.chapter, stageNum: B.stage, won: true, stars: starsEarned
+    }));
+
+    // Save progress immediately here too so it's not lost
+    const storyProg = JSON.parse(safeLocalStorage.getItem('tenfold_story_'+user.userID)||'{}');
+    const key = `${B.chapter}_${B.stage}`;
+    if (!storyProg[key] || starsEarned > (storyProg[key].stars||0)) {
+      storyProg[key] = { completed:true, stars:starsEarned };
+      safeLocalStorage.setItem('tenfold_story_'+user.userID, JSON.stringify(storyProg));
+    }
+
+    // ── SKILL UNLOCK ON STAGE CLEAR ───────────────────────
+    // Each chapter unlocks skills for THAT chapter's hero only:
+    //   Stage 1 → Basic Skill
+    //   Stage 3 → Special Skill
+    //   Stage 4 → Ultimate Skill
+    // Same pattern for every chapter (Ch.1 = Aeron, Ch.2 = Lyra, etc.)
+    (function unlockSkills() {
+      const ch = B.chapter, st = B.stage;
+
+      // Map chapter number → hero id
+      const CH_HERO = {
+        1:'aeron', 2:'lyra',  3:'kael',  4:'riven', 5:'selene',
+        6:'draven',7:'mira',  8:'orion', 9:'brutus',10:'elysia'
+      };
+      const heroId = CH_HERO[ch];
+      if (!heroId) return; // unknown chapter, skip
+
+      const skillKey = 'tenfold_skills_' + user.userID;
+      const skillUL  = JSON.parse(safeLocalStorage.getItem(skillKey) || '{}');
+      if (!skillUL[heroId]) skillUL[heroId] = [];
+
+      // Determine which skill this stage unlocks
+      const toUnlock = [];
+      if (st === 1) toUnlock.push('basic');
+      if (st === 3) toUnlock.push('special');
+      if (st === 4) toUnlock.push('ultimate');
+      if (toUnlock.length === 0) return; // stages 2 & 5 grant no skill
+
+      const newlyUnlocked = [];
+      toUnlock.forEach(type => {
+        if (!skillUL[heroId].includes(type)) {
+          skillUL[heroId].push(type);
+          newlyUnlocked.push(type.charAt(0).toUpperCase() + type.slice(1) + ' Skill');
+        }
+      });
+
+      if (newlyUnlocked.length > 0) {
+        safeLocalStorage.setItem(skillKey, JSON.stringify(skillUL));
+
+        // Show unlock notification on the result screen
+        const heroName = (HEROES[heroId] && HEROES[heroId].name) || heroId;
+        const notif = document.createElement('div');
+        notif.style.cssText = `
+          margin-top: 10px;
+          padding: 10px 20px;
+          background: rgba(240,192,64,0.15);
+          border: 1px solid rgba(240,192,64,0.5);
+          border-radius: 8px;
+          font-family: 'Cinzel', serif;
+          font-size: 0.85rem;
+          color: #f0c040;
+          letter-spacing: 1px;
+          text-align: center;
+        `;
+        notif.innerHTML = `🔓 SKILL UNLOCKED: <strong>${newlyUnlocked.join(', ')}</strong><br>
+          <span style="font-size:0.7rem;color:#aaa;font-family:'Rajdhani',sans-serif;">
+            Now available for ${heroName}!
+          </span>`;
+        document.querySelector('.result-box').appendChild(notif);
+
+        // Sync to server
+        apiCall({ action: 'saveStory', userID: user.userID, chapter: ch, stage: st, stars: starsEarned });
+      }
+    })();
+
+    // Figure out the next stage
+    const curChapter = B.chapter;
+    const curStage   = B.stage;
+    const nextStage  = curStage + 1;
+    const isFinalStage = curStage === 5; // stage 5 = boss, last in chapter
+    const nextChapter  = isFinalStage ? curChapter + 1 : curChapter;
+    const hasNextCh    = nextChapter <= 10;
+
+    // Build story-mode buttons
+    const btns = $('result-btns');
+    if (!isFinalStage) {
+      // There's a next stage in the same chapter
+      btns.innerHTML = `
+        <button class="rbtn gold" onclick="goNextStage(${nextChapter}, ${nextStage})">▶ NEXT STAGE</button>
+        <button class="rbtn ghost" onclick="location.href='story.html'">📖 Story Map</button>
+        <button class="rbtn ghost" onclick="location.href='dashboard.html'">🏠 Dashboard</button>`;
+    } else if (hasNextCh) {
+      // Cleared chapter boss — next chapter available
+      btns.innerHTML = `
+        <button class="rbtn gold" onclick="location.href='story.html'">📖 Next Chapter</button>
+        <button class="rbtn ghost" onclick="location.href='dashboard.html'">🏠 Dashboard</button>
+        <button class="rbtn ghost" onclick="location.href='leaderboard.html'">🏆 Leaderboard</button>`;
+    } else {
+      // Final chapter cleared
+      btns.innerHTML = `
+        <button class="rbtn gold" onclick="location.href='story.html'">👑 Story Complete!</button>
+        <button class="rbtn ghost" onclick="location.href='dashboard.html'">🏠 Dashboard</button>
+        <button class="rbtn ghost" onclick="location.href='leaderboard.html'">🏆 Leaderboard</button>`;
+    }
+  } else if (B.mode==='story' && !won) {
+    // Lost in story mode — no "Play Again", retry same stage
+    const btns = $('result-btns');
+    btns.innerHTML = `
+      <button class="rbtn gold" onclick="location.reload()">↺ RETRY STAGE</button>
+      <button class="rbtn ghost" onclick="location.href='story.html'">📖 Story Map</button>
+      <button class="rbtn ghost" onclick="location.href='dashboard.html'">🏠 Dashboard</button>`;
+  }
+
+  // ── OFFLINE-AWARE SCORE SUBMIT ────────────────────────────
+  // Try to push the score to the server.
+  // If offline (or server times out), queue it locally in
+  // tenfold_pending_scores_<userID> so dashboard.html can
+  // flush it the next time the player is online.
+  (async function submitScore() {
+    const payload = {
+      action:      'addScore',
+      userID:      user.userID,
+      username:    user.username,
+      heroID:      B.playerHeroId,
+      heroName:    B.pHero.name,
+      enemyHeroID: B.enemyHeroId,
+      enemyName:   B.eHero.name,
+      result:      outcome,
+      chapter:     B.chapter,
+      battleID:    battleID,
+      battleDate:  battleDate
+    };
+
+    const PENDING_KEY = 'tenfold_pending_scores_' + user.userID;
+
+    try {
+      const res = await apiCall(payload);
+      if (res && res.success) {
+        // Server accepted — update the authoritative score from server response
+        if (res.newTotalScore !== undefined) {
+          user.totalScore = Math.max(0, parseInt(res.newTotalScore, 10) || 0);
+          Game.login(user);
+          safeLocalStorage.setItem(
+            'tenfold_score_cache_' + user.userID,
+            String(user.totalScore)
+          );
+        }
+        // If there are previously queued pending scores, try to flush them now
+        flushPendingScores();
+      } else {
+        // Server responded but failed (rare) — queue it
+        queuePendingScore(payload);
+      }
+    } catch(e) {
+      // Network error / offline — queue it
+      queuePendingScore(payload);
+    }
+
+    function queuePendingScore(p) {
+      const pending = JSON.parse(safeLocalStorage.getItem(PENDING_KEY) || '[]');
+      // Avoid duplicates: same battle (same date + hero + result)
+      p.battleDate = p.battleDate || new Date().toISOString();
+      p.battleID   = p.battleID || ('BAT_' + user.userID + '_' + Date.now() + '_' + Math.floor(Math.random()*100000));
+      p.pts        = won ? 100 : 10;
+      const isDupe = pending.some(x => x.battleID === p.battleID);
+      if (!isDupe) {
+        pending.push(p);
+        // Cap at 200 pending entries to avoid bloat
+        const kept = pending.slice(-200);
+        safeLocalStorage.setItem(PENDING_KEY, JSON.stringify(kept));
+
+        // Offline total = last confirmed server score + queued points.
+        const base = Math.max(0, parseInt(
+          safeLocalStorage.getItem('tenfold_score_cache_' + user.userID) || '0', 10
+        ) || 0);
+        const queuedPoints = kept.reduce(
+          (sum, item) => sum + (parseInt(item.pts, 10) || (item.result === 'win' ? 100 : 10)), 0
+        );
+        user.totalScore = base + queuedPoints;
+        Game.login(user);
+      }
+    }
+  })();
+}
+
+// ── NEXT STAGE HELPER ─────────────────────────────────────────
+// Stores the next stage info and reloads battle.html directly —
+// no trip back to story.html needed for sequential stages.
+function goNextStage(chNum, stageNum) {
+  safeSessionStorage.setItem('tenfold_story_autonext', JSON.stringify({ chNum, stageNum }));
+  location.href = 'story.html';
+}
+
+function fleeBattle() {
+  if (B.over) return;
+  if (confirm('Flee the battle?')) { B.over=true; showResult('lose'); }
+}
+
+// ── FLUSH PENDING OFFLINE SCORES ─────────────────────────────
+// Called after a successful server sync. Drains the local queue
+// one-by-one, updating user.totalScore from each server response.
+async function flushPendingScores() {
+  const PENDING_KEY = 'tenfold_pending_scores_' + user.userID;
+  const pending = JSON.parse(safeLocalStorage.getItem(PENDING_KEY) || '[]');
+  if (pending.length === 0) return;
+
+  const remaining = [];
+  for (const p of pending) {
+    try {
+      const res = await apiCall(p);
+      if (res && res.success) {
+        // Update local score from server authoritative value
+        if (res.newTotalScore !== undefined) {
+          user.totalScore = Math.max(0, parseInt(res.newTotalScore, 10) || 0);
+          Game.login(user);
+          safeLocalStorage.setItem(
+            'tenfold_score_cache_' + user.userID,
+            String(user.totalScore)
+          );
+        }
+        // Also sync the hero level for this pending battle.
+        // Story levels and arena levels are stored separately.
+        if (p.heroID) {
+          const storyLvls = JSON.parse(safeLocalStorage.getItem('tenfold_levels_' + user.userID) || '{}');
+          const sLv = storyLvls[p.heroID] || 1;
+          const sXp = storyLvls[p.heroID + '_xp'] || 0;
+          apiCall({ action: 'setHeroLevel', userID: user.userID, heroID: p.heroID, level: sLv, xp: sXp });
+
+          const arenaLvls = JSON.parse(safeLocalStorage.getItem('tenfold_arena_levels_' + user.userID) || '{}');
+          const aLv = arenaLvls[p.heroID] || 1;
+          const aXp = arenaLvls[p.heroID + '_xp'] || 0;
+          apiCall({ action: 'setHeroLevel', userID: user.userID, heroID: p.heroID, level: aLv, xp: aXp, levelType: 'arena' });
+        }
+      } else {
+        remaining.push(p); // still failed — keep in queue
+      }
+    } catch(e) {
+      remaining.push(p); // still offline — keep in queue
+      break; // no point trying the rest
+    }
+  }
+
+  if (remaining.length !== pending.length) {
+    safeLocalStorage.setItem(PENDING_KEY, JSON.stringify(remaining));
+  }
+}
+
+// ── ROLL CARD UPDATE ─────────────────────────────────────────
+function setRollCard(side, heroId) {
+  const h = HEROES[heroId]; if (!h) return;
+  const imgEl   = $(`roll-${side}-img`);
+  const emojiEl = $(`roll-${side}-emoji`);
+  const nameEl  = $(`roll-${side}-name`);
+  const subEl   = $(`roll-${side}-sub`);
+
+  const portSrc = (h.sprites&&h.sprites.portrait)||(h.sprites&&h.sprites.idle)||'';
+  if (imgEl) {
+    imgEl.src = portSrc;
+    imgEl.style.display = portSrc ? 'block' : 'none';
+  }
+  if (emojiEl) emojiEl.textContent = portSrc ? '' : (ELEMENT_ICONS[h.element]||'⚔');
+  if (nameEl)  nameEl.textContent  = h.name;
+  if (subEl)   subEl.textContent   = `${ELEMENT_ICONS[h.element]||''} ${h.element} · ${h.title}`;
+}
+
+// ── ROLL IDs (player card uses p, enemy uses e) ───────────────
+// HTML ids: roll-p-img, roll-p-emoji, roll-p-name, roll-p-sub
+//           roll-e-img, roll-e-emoji, roll-e-name, roll-e-sub
+function updateRollCard(side, entityId) {
+  // side = 'p' or 'e'  — works for both heroes and story enemies/mobs
+  const h = getEntity(entityId); if (!h) return;
+  const imgEl   = $('roll-'+side+'-img');
+  const emojiEl = $('roll-'+side+'-emoji');
+  const nameEl  = $('roll-'+side+'-name');
+  const subEl   = $('roll-'+side+'-sub');
+
+  const portSrc = (h.sprites&&h.sprites.portrait)||(h.sprites&&h.sprites.idle)||'';
+  if (imgEl) { imgEl.src=portSrc; imgEl.style.display=portSrc?'block':'none'; }
+  if (emojiEl) emojiEl.textContent = portSrc ? '' : (ELEMENT_ICONS[h.element]||'👾');
+  if (nameEl)  nameEl.textContent  = h.name;
+  // Show role badge for mobs (Monster/Boss), title for heroes
+  const roleTag = (h.role && h.role !== 'Damage Dealer' && h.role !== 'Tank' && h.role !== 'Support / Damage' && h.role !== 'Assassin' && h.role !== 'Mage')
+    ? h.role : h.title || '';
+  if (subEl) subEl.textContent = `${ELEMENT_ICONS[h.element]||''} ${h.element} · ${roleTag}`;
+}
+
+// ── DO ROLL ──────────────────────────────────────────────────
+async function doRoll() {
+  $('roll-status').textContent = 'LOADING HERO DATA…';
+
+  // ── FAST SERVER SYNC (never block the whole battle) ───────
+  // Use cached progress immediately. If the server answers quickly,
+  // merge its latest hero levels before the roll finishes. If mobile
+  // WebView/network is slow, the battle continues with the last synced data.
+  const levelSync = (async () => {
+    try {
+      const charsRes = await apiCall({ action: 'getChars', userID: user.userID }, 1600);
+      if (charsRes.success && charsRes.characters) {
+        const lvls = JSON.parse(safeLocalStorage.getItem('tenfold_levels_'+user.userID)||'{}');
+        charsRes.characters.forEach(c => {
+          const servLv = c.level || 1;
+          const servXP = c.xp || 0;
+          const localLv = lvls[c.heroID] || 1;
+          if (servLv > localLv || (servLv === localLv && servXP > (lvls[c.heroID+'_xp'] || 0))) {
+            lvls[c.heroID] = servLv;
+            lvls[c.heroID+'_xp'] = servXP;
+          }
+        });
+        safeLocalStorage.setItem('tenfold_levels_'+user.userID, JSON.stringify(lvls));
+      }
+    } catch (_) {}
+  })();
+
+  $('roll-status').textContent = 'ROLLING COMBATANTS & MAP…';
+
+  // In story mode the chapter forces a specific hero; in arena use the player's selection.
+  const storyHeroId = safeSessionStorage.getItem('tenfold_battle_hero_id') || '';
+  const modeEarly   = safeSessionStorage.getItem('tenfold_battle_mode') || 'arena';
+  const pId = (modeEarly === 'story' && storyHeroId && HEROES[storyHeroId])
+    ? storyHeroId
+    : (Game.getSelectedHero() || 'aeron');
+  rollPlayerHeroId = pId;
+
+  // Only 'aeron' is free from the start. All other heroes are unlocked through
+  // story progression. Read whatever is already saved — never overwrite with
+  // a full list, or locked heroes would appear as available in the arena.
+  const saved = JSON.parse(safeLocalStorage.getItem('tenfold_unlocked_'+user.userID)||'["aeron"]');
+  const unlocked = Array.from(new Set(['aeron', ...saved]));
+  safeLocalStorage.setItem('tenfold_unlocked_'+user.userID, JSON.stringify(unlocked));
+
+  const mode       = safeSessionStorage.getItem('tenfold_battle_mode') || 'arena';
+  const fixedEnemy = safeSessionStorage.getItem('tenfold_battle_enemy') || '';
+
+  // ── ARENA SKILL-UNLOCK GATE ───────────────────────────────
+  // Block arena (hero vs hero) if the selected hero hasn't had all
+  // 3 skills unlocked via Story Mode yet. Admins always bypass this.
+  if (mode !== 'story' && !Game.isAdmin()) {
+    const skillUL    = JSON.parse(safeLocalStorage.getItem('tenfold_skills_' + user.userID) || '{}');
+    const heroSkills = (skillUL[pId]) || [];
+    const hasAll     = ['basic', 'special', 'ultimate'].every(t => heroSkills.includes(t));
+    if (!hasAll) {
+      const missing = ['basic', 'special', 'ultimate'].filter(t => !heroSkills.includes(t));
+      const CH_HERO_NUM = {aeron:1,lyra:2,kael:3,riven:4,selene:5,draven:6,mira:7,orion:8,brutus:9,elysia:10};
+      const _ach = CH_HERO_NUM[pId] || 1;
+      const hints   = { basic: `Ch.${_ach} Stage 1`, special: `Ch.${_ach} Stage 3`, ultimate: `Ch.${_ach} Stage 4` };
+      const needed  = missing.map(t => hints[t]).join(' · ');
+      $('roll-status').textContent = `🔒 Arena Locked`;
+      const overlay = $('roll-overlay');
+      if (overlay) {
+        const msg = document.createElement('div');
+        msg.style.cssText = `
+          margin-top: 18px;
+          padding: 14px 22px;
+          background: rgba(200,0,0,0.15);
+          border: 1px solid rgba(200,0,0,0.45);
+          border-radius: 10px;
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 0.95rem;
+          color: #ff8888;
+          text-align: center;
+          line-height: 1.6;
+        `;
+        msg.innerHTML = `<strong style="font-family:'Cinzel',serif;color:#ffaaaa;letter-spacing:1px;">🔒 ARENA LOCKED</strong><br>
+          Your hero doesn't have all skills unlocked yet.<br>
+          <span style="color:#aaa;font-size:0.85rem;">Complete Story Mode to unlock: <strong style="color:#f0c040;">${needed}</strong></span><br>
+          <span style="color:#666;font-size:0.78rem;">Returning to Story Mode…</span>`;
+        overlay.appendChild(msg);
+      }
+      setTimeout(() => { window.location.href = 'story.html'; }, 2800);
+      return;
+    }
+  }
+
+  // When entering arena mode, aggressively wipe any leftover story keys from
+  // the in-memory safeSessionStorage so they can't bleed into the arena roll.
+  if (mode !== 'story') {
+    safeSessionStorage.removeItem('tenfold_battle_enemy');
+    safeSessionStorage.removeItem('tenfold_battle_enemy_lv');
+    safeSessionStorage.removeItem('tenfold_battle_chapter');
+    safeSessionStorage.removeItem('tenfold_battle_stage');
+    safeSessionStorage.removeItem('tenfold_battle_name');
+    safeSessionStorage.removeItem('tenfold_battle_is_boss');
+    safeSessionStorage.removeItem('tenfold_battle_hero_id');
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // STORY MODE — fixed enemy (mob or story hero), skip roll
+  // Only enter story branch when mode is explicitly 'story'
+  // AND fixedEnemy resolves to a known entity (hero or story mob).
+  // This prevents stale sessionStorage from accidentally routing
+  // an arena battle through the story path.
+  // ══════════════════════════════════════════════════════════
+  const isKnownEnemy = fixedEnemy && (!!STORY_ENEMIES[fixedEnemy] || !!HEROES[fixedEnemy]);
+  if (mode === 'story' && isKnownEnemy) {
+    const isStoryMonster = !!STORY_ENEMIES[fixedEnemy];
+    const isStoryHero    = !!HEROES[fixedEnemy];
+
+    if (isStoryMonster) {
+      const monster = STORY_ENEMIES[fixedEnemy];
+      rollEnemyHeroId = fixedEnemy;
+      rollMap = { name: monster.name, bg: monster.sprites.backgrounds[0] || '' };
+    } else if (isStoryHero) {
+      rollEnemyHeroId = fixedEnemy;
+      // Use the hero's own background as map
+      const h = HEROES[fixedEnemy];
+      const bg = (h.sprites && h.sprites.backgrounds && h.sprites.backgrounds[0]) || '';
+      rollMap = { name: h.name + '\'s Domain', bg };
+    } else {
+      // Fallback — unknown enemy, treat as arena
+      rollEnemyHeroId = unlocked.filter(id=>id!==pId)[0] || 'aeron';
+      rollMap = MAPS[Math.floor(Math.random()*MAPS.length)];
+    }
+
+    updateRollCard('p', pId);
+    updateRollCard('e', rollEnemyHeroId);
+    $('roll-map').textContent = rollMap.name;
+    $('roll-map').classList.remove('spinning');
+
+    const pCard = $('roll-player');
+    const eCard = $('roll-enemy');
+    pCard.classList.remove('spinning'); pCard.classList.add('settled');
+    eCard.classList.remove('spinning'); eCard.classList.add('settled');
+    $('roll-status').textContent = '— READY —';
+    // Preload assets while user reads the matchup
+    const preloadPromise = preloadBattleAssets(pId, rollEnemyHeroId);
+    await Promise.race([preloadPromise, sleep(2000)]);
+    await sleep(150);
+    $('roll-start-btn').style.display = 'inline-block';
+    return;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ARENA MODE — random hero enemy + random map from ALL heroes
+  // Always heroes only, never story mobs
+  // ══════════════════════════════════════════════════════════
+
+  // Enemy pool: ALL heroes except the player's chosen hero
+  // In arena mode, locked heroes are still valid opponents —
+  // the lock only prevents the player from PLAYING AS them.
+  const allHeroIds = Object.keys(HEROES);
+  const enemyPool = allHeroIds.filter(id => id !== pId && HEROES[id]);
+  if (!enemyPool.length) enemyPool.push(pId === 'aeron' ? 'lyra' : 'aeron');
+
+  // Show player card immediately (settled)
+  updateRollCard('p', pId);
+  const pCard = $('roll-player');
+  pCard.classList.remove('spinning');
+  pCard.classList.add('settled');
+
+  // Spin enemy + map for 2.4s
+  const DUR = 1400, t0 = Date.now();
+  const ticker = setInterval(() => {
+    const rE = enemyPool[Math.floor(Math.random() * enemyPool.length)];
+    const rM = MAPS[Math.floor(Math.random() * MAPS.length)];
+    updateRollCard('e', rE);
+    $('roll-map').textContent = rM.name;
+    if (Date.now() - t0 > DUR - 300) clearInterval(ticker);
+  }, 85);
+
+  await sleep(DUR);
+  clearInterval(ticker);
+
+  // Settle final enemy + map
+  rollEnemyHeroId = enemyPool[Math.floor(Math.random() * enemyPool.length)];
+  rollMap         = MAPS[Math.floor(Math.random() * MAPS.length)];
+  updateRollCard('e', rollEnemyHeroId);
+  $('roll-map').textContent = rollMap.name;
+  $('roll-map').classList.remove('spinning');
+
+  // Kick off preload while the settle animation plays
+  const preloadPromise = preloadBattleAssets(
+    Game.getSelectedHero() || 'aeron', rollEnemyHeroId
+  );
+
+  await sleep(80);
+  const eCard = $('roll-enemy');
+  eCard.classList.remove('spinning');
+  eCard.classList.add('settled');
+
+  $('roll-status').textContent = '— READY —';
+  // Wait for assets (usually instant on warm cache; max 2s on cold)
+  await Promise.race([preloadPromise, sleep(2000)]);
+  await sleep(150);
+  $('roll-start-btn').style.display = 'inline-block';
+}
+
+// ── CHAPTER STAGE LEVEL TABLE ────────────────────────────────
+// Hero level required (= enemy level) for every stage in every chapter.
+// St offsets from boss level: St1=-4, St2=-3, St3=-2, St4=-1, St5=0
+// Boss levels: Ch1=5, Ch2=10, Ch3=15, Ch4=20, Ch5=25,
+//              Ch6=30, Ch7=35, Ch8=40, Ch9=45, Ch10=50
+const CHAPTER_BOSS_LV = { 1:5, 2:10, 3:15, 4:20, 5:25, 6:30, 7:35, 8:40, 9:45, 10:50 };
+const STAGE_OFFSETS   = { 1:-4, 2:-3, 3:-2, 4:-1, 5:0 };
+function getChapterStageLv(chNum, stageNum) {
+  const bossLv = CHAPTER_BOSS_LV[chNum] || 10;
+  return Math.max(1, bossLv + (STAGE_OFFSETS[stageNum] || 0));
+}
+
+// ── START BATTLE ─────────────────────────────────────────────
+function startBattle() {
+  const lvls     = JSON.parse(safeLocalStorage.getItem('tenfold_levels_'+user.userID)||'{}');
+  const modeNow  = safeSessionStorage.getItem('tenfold_battle_mode') || 'arena';
+  const chNow    = +safeSessionStorage.getItem('tenfold_battle_chapter') || 0;
+  const stNow    = +safeSessionStorage.getItem('tenfold_battle_stage')   || 0;
+  const isBossNow = safeSessionStorage.getItem('tenfold_battle_is_boss') === '1';
+
+  // ── STORY vs ARENA: read level from the correct separate store ──
+  // Story levels  → tenfold_levels_<uid>        (milestone Lv1-50)
+  // Arena levels  → tenfold_arena_levels_<uid>  (XP-based, starts Lv1)
+  let pLv;
+  if (modeNow === 'story') {
+    pLv = lvls[rollPlayerHeroId] || 1;
+
+    // Force hero up to the required milestone for this stage.
+    // Level never goes DOWN — only up if stored value is lower.
+    if (chNow > 0 && stNow > 0) {
+      const requiredLv = getChapterStageLv(chNow, stNow);
+      if (requiredLv > pLv) {
+        pLv = requiredLv;
+        lvls[rollPlayerHeroId] = pLv;
+        safeLocalStorage.setItem('tenfold_levels_' + user.userID, JSON.stringify(lvls));
+        apiCall({ action:'setHeroLevel', userID:user.userID, heroID:rollPlayerHeroId,
+                  level:pLv, xp: lvls[rollPlayerHeroId+'_xp']||0 });
+      }
+    }
+  } else {
+    // Arena mode — use the arena-specific level only.
+    // Story levels are milestone-based (can reach Lv 50) and would give
+    // massively inflated stats in PvP. Arena level starts at 1 and grows
+    // slowly via arena XP, so both sides always fight at a fair scale.
+    const arenaLvls = JSON.parse(safeLocalStorage.getItem('tenfold_arena_levels_' + user.userID) || '{}');
+    pLv = Math.max(1, arenaLvls[rollPlayerHeroId] || 1);
+  }
+
+  // Story monsters use their fixed level from safeSessionStorage; others scale near player
+  const fixedELv = +safeSessionStorage.getItem('tenfold_battle_enemy_lv');
+  const eLv  = fixedELv || Math.max(1, pLv + rand(-1, 1));
+
+  initBattleState(rollPlayerHeroId, rollEnemyHeroId, rollMap, pLv, eLv);
+
+  $('arena-bg').style.backgroundImage = `url('${rollMap.bg}')`;
+  $('map-tag').textContent = rollMap.name;
+
+  buildSprite('player', rollPlayerHeroId);
+  buildSprite('enemy',  rollEnemyHeroId);
+  loadSkillIcons(rollPlayerHeroId);
+  preloadBattleAssets(rollPlayerHeroId, rollEnemyHeroId);
+
+  // Hide roll overlay
+  $('roll-overlay').style.display = 'none';
+
+  renderHUD();
+  logMsg(`⚔ ${B.pHero.name} VS ${B.eHero.name}`, 'ls');
+  logMsg(`📍 ${rollMap.name}`, 'ls');
+  const isMobile = window.innerWidth <= 700;
+  logMsg(isMobile ? 'Tap skill buttons to fight!' : 'Q=Attack  W=Basic  E=Special  R=Ultimate', 'ls');
+  B.turn='player'; renderHUD();
+  // Reset auto state on each new battle
+  autoPlay = false;
+  const autoBtn = document.getElementById('btn-auto');
+  if (autoBtn) { autoBtn.classList.remove('active'); autoBtn.textContent = '▶ AUTO'; }
+}
+
+// ── KEYBOARD ─────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (B.over||B.locked) return;
+  if (e.key==='q'||e.key==='Q') useAttack();
+  if (e.key==='w'||e.key==='W') useSkill('basic');
+  if (e.key==='e'||e.key==='E') useSkill('special');
+  if (e.key==='r'||e.key==='R') useSkill('ultimate');
+});
+
+// ── START ────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', ()=>{
+  doRoll().catch(err=>{
+    console.error('doRoll error:', err);
+    $('roll-status').textContent = 'ERROR: '+err.message;
+    $('roll-status').style.color = '#ff4444';
+  });
+});
+</script>
+</body>
+</html>
