@@ -507,7 +507,7 @@
     <button class="nav-btn" onclick="location.href='dashboard.html'">Dashboard</button>
     <button class="nav-btn" onclick="location.href='characters.html'">Heroes</button>
     <button class="nav-btn active">Story Mode</button>
-    <button class="nav-btn" onclick="goArena()">Arena</button>
+    <button class="nav-btn" onclick="goToArena()">Arena</button>
     <button class="nav-btn" onclick="location.href='leaderboard.html'">Leaderboard</button>
   </div>
   <div class="nav-user">
@@ -736,7 +736,38 @@ let progress     = JSON.parse(safeLocalStorage.getItem('tenfold_story_'   + user
 let skillUnlocks = JSON.parse(safeLocalStorage.getItem('tenfold_skills_'  + user.userID) || '{}');
 let heroUnlocks  = JSON.parse(safeLocalStorage.getItem('tenfold_unlocked_'+ user.userID) || '["aeron"]');
 
-function storyKey(ch, st) { return `ch${ch}_st${st}`; }
+// ── MIGRATE old ch{N}_st{N} keys → {N}_{N} keys ──────────────
+// Converts stale localStorage data written by the old key format
+// so all files now share the same {chapter}_{stage} convention.
+(function migrateStoryKeys() {
+  const raw = safeLocalStorage.getItem('tenfold_story_' + user.userID);
+  if (!raw) return;
+  let prog;
+  try { prog = JSON.parse(raw); } catch(e) { return; }
+  let changed = false;
+  const newProg = {};
+  Object.keys(prog).forEach(k => {
+    const m = k.match(/^ch(\d+)_st(\d+)$/);
+    if (m) {
+      const newKey = `${m[1]}_${m[2]}`;
+      // Keep the better stars if both keys exist
+      const existing = newProg[newKey] || prog[newKey];
+      if (!existing || (prog[k].stars || 0) > (existing.stars || 0)) {
+        newProg[newKey] = prog[k];
+      }
+      changed = true;
+    } else {
+      newProg[k] = prog[k];
+    }
+  });
+  if (changed) {
+    safeLocalStorage.setItem('tenfold_story_' + user.userID, JSON.stringify(newProg));
+    // Reload progress with the corrected keys
+    progress = newProg;
+  }
+})();
+
+function storyKey(ch, st) { return `${ch}_${st}`; }
 function isCleared(ch, st){ return !!(progress[storyKey(ch,st)]?.completed); }
 function getStars(ch,  st){ return progress[storyKey(ch,st)]?.stars || 0; }
 
@@ -1141,7 +1172,7 @@ function confirmBossFight() {
 }
 
 // ── GO ARENA (clears story session) ──────────────────────────
-function goArena() {
+function goToArena() {
   if (!Game.isAdmin()) {
     const heroId   = Game.getSelectedHero() || 'aeron';
     const skillUL  = JSON.parse(safeLocalStorage.getItem('tenfold_skills_' + user.userID) || '{}');
