@@ -900,13 +900,13 @@ function startPlayerTurn() {
   renderHUD();
   if (B.over) return;
 
-  // If paralyzed, skip the player's turn automatically
+  // If paralyzed, skip the player's turn automatically — tickStatus handles the decrement
   if (B.pParalyzed > 0) {
-    B.pParalyzed--;
     renderHUD();
     logMsg(`⚡ Paralyzed! You can't move! (${B.pParalyzed} turns left)`, 'ls');
     tickStatus('player');
     tickCD('player');
+    renderHUD();
     B.turn = 'enemy'; B.locked = false; renderHUD();
     setTimeout(enemyAI, 900 + Math.random() * 400);
     return;
@@ -1697,10 +1697,14 @@ function useAttack() {
   if (B.turn!=='player'||B.locked||B.over) return;
 
   if (B.pFrozen > 0) {
-    B.pFrozen--;
     renderHUD();
-    if (B.pFrozen > 0) { logMsg('❄ Still frozen — cannot act!','ls'); return; }
+    if (B.pFrozen > 1) { logMsg('❄ Still frozen — cannot act!','ls'); return; }
     logMsg('❄ Thawed! You can act now.','ls');
+    tickStatus('player');
+    tickCD('player');
+    B.turn='enemy'; B.locked=false; renderHUD();
+    setTimeout(enemyAI, 900+Math.random()*400);
+    return;
   }
 
   B.locked = true;
@@ -1744,13 +1748,16 @@ function useSkill(type) {
     }
   }
 
-  // Tick down freeze at start of player turn (not block — just decrement)
+  // Frozen blocks all actions — tickStatus handles the decrement
   if (B.pFrozen > 0) {
-    B.pFrozen--;
     renderHUD();
-    if (B.pFrozen > 0) { logMsg('❄ Still frozen — cannot act!','ls'); return; }
+    if (B.pFrozen > 1) { logMsg('❄ Still frozen — cannot act!','ls'); return; }
     logMsg('❄ Thawed! You can act now.','ls');
-    // Don't return — let them act
+    tickStatus('player');
+    tickCD('player');
+    B.turn='enemy'; B.locked=false; renderHUD();
+    setTimeout(enemyAI, 900+Math.random()*400);
+    return;
   }
 
   const sk = B.pHero.skills[type];
@@ -1771,8 +1778,19 @@ function execPlayer(type, sk) {
     const r = applyDmg('enemy',dmg); spawnDmg('enemy',r,isCrit);
     renderHUD();
     logMsg(`⚔ ${ph.name} uses ${sk.name}! Deals ${r}${isCrit?' (CRIT!)':''} dmg.`, 'lp');
-    if (B.playerHeroId==='aeron') { B.eBurning=Math.max(B.eBurning,2); extra=' 🔥 Enemy burns!'; }
-    if (B.playerHeroId==='kael')  { B.eParalyzed=Math.max(B.eParalyzed,1); extra=' ⚡ Enemy paralyzed!'; }
+    // Basic skill: 30% chance to apply status effect on hit
+    if (Math.random() < 0.30) {
+      if (B.playerHeroId==='aeron')  { B.eBurning=Math.max(B.eBurning,1);   extra=' 🔥 Enemy burns!'; }
+      if (B.playerHeroId==='kael')   { B.eParalyzed=Math.max(B.eParalyzed,1); extra=' ⚡ Enemy paralyzed!'; }
+      if (B.playerHeroId==='lyra')   { B.eFrozen=Math.max(B.eFrozen,1);     extra=' ❄ Enemy chilled!'; }
+      if (B.playerHeroId==='riven')  { B.eParalyzed=Math.max(B.eParalyzed,1); extra=' 💥 Enemy staggered!'; }
+      if (B.playerHeroId==='selene') { B.eParalyzed=Math.max(B.eParalyzed,1); extra=' 🌙 Enemy dazed by moonlight!'; }
+      if (B.playerHeroId==='draven') { B.eFrozen=Math.max(B.eFrozen,1);     extra=' 🌑 Enemy shadowed!'; }
+      if (B.playerHeroId==='mira')   { B.eFrozen=Math.max(B.eFrozen,1);     extra=' 🌊 Enemy chilled by water!'; }
+      if (B.playerHeroId==='orion')  { B.eParalyzed=Math.max(B.eParalyzed,1); extra=' 🌪 Enemy blown back!'; }
+      if (B.playerHeroId==='brutus') { B.eParalyzed=Math.max(B.eParalyzed,1); extra=' 🛡 Enemy crushed!'; }
+      if (B.playerHeroId==='elysia') { B.eBurning=Math.max(B.eBurning,1);   extra=' ✨ Enemy scorched by arcane!'; }
+    }
   } else if (type==='special') {
     if (sk.damage<0) {
       // Arena mode: cap heal at 200 HP so it's not game-breaking in PvP
@@ -1787,10 +1805,15 @@ function execPlayer(type, sk) {
       const r = applyDmg('enemy',dmg); spawnDmg('enemy',r,isCrit);
       logMsg(`✨ ${ph.name} uses ${sk.name}! Deals ${r}${isCrit?' (CRIT!)':''} dmg.`, 'lp');
       if (B.playerHeroId==='lyra')   { B.eFrozen=1;  extra=' ❄ Enemy FROZEN!'; }
-      if (B.playerHeroId==='aeron')  { B.eBurning=Math.max(B.eBurning,2); extra=' 🔥'; }
+      if (B.playerHeroId==='aeron')  { B.eBurning=Math.max(B.eBurning,2); extra=' 🔥 Scorching flames!'; }
       if (B.playerHeroId==='kael')   { B.eParalyzed=Math.max(B.eParalyzed,2); extra=' ⚡ Enemy paralyzed!'; }
-      if (B.playerHeroId==='selene') { B.pBoost=2; extra=' 🌙 Power surge!'; }
-      if (B.playerHeroId==='draven') { B.pBoost=2; extra=' 🌑 Stepping from the shadows!'; }
+      if (B.playerHeroId==='riven')  { B.eParalyzed=Math.max(B.eParalyzed,1); B.eBurning=Math.max(B.eBurning,1); extra=' 💥 Earth Wall crushes enemy! (Stun 1 + Burn 1)'; }
+      if (B.playerHeroId==='selene') { B.pBoost=2; B.eParalyzed=Math.max(B.eParalyzed,1); extra=' 🌙 Moon Rain stuns enemy! (Power surge + Paralyzed 1)'; }
+      if (B.playerHeroId==='draven') { B.pBoost=2; B.eFrozen=Math.max(B.eFrozen,1); extra=' 🌑 Dark Step — stepping from shadows, enemy frozen! (Frozen 1)'; }
+      if (B.playerHeroId==='mira')   { B.eFrozen=Math.max(B.eFrozen,1); extra=' 🌊 Enemy trapped in water! (Frozen 1)'; }
+      if (B.playerHeroId==='orion')  { B.eParalyzed=Math.max(B.eParalyzed,2); extra=' 🌪 Wind Blade — enemy sent airborne! (Paralyzed 2)'; }
+      if (B.playerHeroId==='brutus') { B.eGuard=false; B.eParalyzed=Math.max(B.eParalyzed,1); extra=' 🛡 Shield Slam — guard broken! (Guard Break + Paralyzed 1)'; }
+      if (B.playerHeroId==='elysia') { B.eBurning=Math.max(B.eBurning,2); B.eParalyzed=Math.max(B.eParalyzed,1); extra=' ✨ Arcane surge burns enemy! (Burn 2 + Paralyzed 1)'; }
     }
   } else {
     const {dmg,isCrit} = calcDmg(B.pAtk*1.5*boost, B.eDef, arenaDmg('ultimate', sk.damage), B.pCrit+10);
@@ -1832,21 +1855,22 @@ function execPlayer(type, sk) {
 function enemyAI() {
   if (B.over) return;
 
-  // Handle frozen — skip turn but tick down
+  // Handle frozen — skip turn, tickStatus handles the decrement
   if (B.eFrozen > 0) {
-    B.eFrozen--;
     logMsg(`❄ ${B.eHero.name} is frozen! (${B.eFrozen} turns left)`,'le');
+    tickStatus('enemy');
     tickCD('enemy');
+    renderHUD();
     startPlayerTurn();
     return;
   }
 
-  // Handle paralyzed — guaranteed turn skip
+  // Handle paralyzed — guaranteed turn skip, tickStatus handles the decrement
   if (B.eParalyzed > 0) {
-    B.eParalyzed--;
     logMsg(`⚡ ${B.eHero.name} is paralyzed and can't move! (${B.eParalyzed} turns left)`,'le');
     tickStatus('enemy');
     tickCD('enemy');
+    renderHUD();
     startPlayerTurn();
     return;
   }
@@ -1908,11 +1932,18 @@ function execEnemy(type, sk) {
     const {dmg,isCrit} = calcDmg(B.eAtk*boost, B.pDef, arenaDmg('basic', sk.damage), B.eCrit);
     const r=applyDmg('player',dmg); spawnDmg('player',r,isCrit);
     logMsg(`${eh.name} uses ${sk.name}! You take ${r}${isCrit?' (CRIT!)':''}.`,'le');
-    // Basic skill: 30% chance lang mag-apply og status — dili guaranteed every hit
+    // Basic skill: 30% chance to apply status effect on hit
     if (Math.random() < 0.30) {
-      if (eElem==='Fire')      { B.pBurning=Math.max(B.pBurning,1); extra=' 🔥 You burn!'; }
-      if (eElem==='Lightning') { B.pParalyzed=Math.max(B.pParalyzed,1); extra=' ⚡ You are paralyzed!'; }
-      if (eId==='kael')        { B.pParalyzed=Math.max(B.pParalyzed,1); extra=' ⚡ You are paralyzed!'; }
+      if (eId==='aeron')  { B.pBurning=Math.max(B.pBurning,1);    extra=' 🔥 You burn!'; }
+      if (eId==='kael')   { B.pParalyzed=Math.max(B.pParalyzed,1); extra=' ⚡ You are paralyzed!'; }
+      if (eId==='lyra')   { B.pFrozen=Math.max(B.pFrozen,1);       extra=' ❄ You are chilled!'; }
+      if (eId==='riven')  { B.pParalyzed=Math.max(B.pParalyzed,1); extra=' 💥 You are staggered!'; }
+      if (eId==='selene') { B.pParalyzed=Math.max(B.pParalyzed,1); extra=' 🌙 Moonlight dazes you!'; }
+      if (eId==='draven') { B.pFrozen=Math.max(B.pFrozen,1);       extra=' 🌑 Shadows chill you!'; }
+      if (eId==='mira')   { B.pFrozen=Math.max(B.pFrozen,1);       extra=' 🌊 You are chilled by water!'; }
+      if (eId==='orion')  { B.pParalyzed=Math.max(B.pParalyzed,1); extra=' 🌪 You are blown back!'; }
+      if (eId==='brutus') { B.pParalyzed=Math.max(B.pParalyzed,1); extra=' 🛡 You are crushed!'; }
+      if (eId==='elysia') { B.pBurning=Math.max(B.pBurning,1);     extra=' ✨ Arcane fire burns you!'; }
     }
   } else if (type==='special') {
     if (sk.damage<0) {
@@ -1927,15 +1958,17 @@ function execEnemy(type, sk) {
       const {dmg,isCrit} = calcDmg(B.eAtk*boost, B.pDef, arenaDmg('special', sk.damage), B.eCrit+5);
       const r=applyDmg('player',dmg); spawnDmg('player',r,isCrit);
       logMsg(`${eh.name} uses ${sk.name}! You take ${r}${isCrit?' (CRIT!)':''}.`,'le');
-      // Status effects by element
-      if (eElem==='Fire')      { B.pBurning=Math.max(B.pBurning,2); extra=' 🔥 Scorching flames!'; }
-      if (eElem==='Ice')       { B.pFrozen=1; extra=' ❄ You are FROZEN!'; }
-      if (eElem==='Lightning') { B.pParalyzed=Math.max(B.pParalyzed,2); extra=' ⚡ You are paralyzed!'; }
-      // Hero-specific overrides
-      if (eId==='lyra')   { B.pFrozen=1; extra=' ❄ You are FROZEN!'; }
+      // Hero-specific status effects — special skills
+      if (eId==='aeron')  { B.pBurning=Math.max(B.pBurning,2);    extra=' 🔥 Scorching flames!'; }
+      if (eId==='lyra')   { B.pFrozen=Math.max(B.pFrozen,1);       extra=' ❄ You are FROZEN!'; }
       if (eId==='kael')   { B.pParalyzed=Math.max(B.pParalyzed,2); extra=' ⚡ You are paralyzed!'; }
-      if (eId==='selene') { B.eBoost=2; extra=' 🌙 Power surge!'; }
-      if (eId==='draven') { B.eBoost=2; extra=' 🌑 Stepping from the shadows!'; }
+      if (eId==='riven')  { B.pParalyzed=Math.max(B.pParalyzed,1); B.pBurning=Math.max(B.pBurning,1); extra=' 💥 Earth Wall crushes you! (Stun 1 + Burn 1)'; }
+      if (eId==='selene') { B.pParalyzed=Math.max(B.pParalyzed,1); extra=' 🌙 Moonlight stuns you! (Paralyzed 1)'; }
+      if (eId==='draven') { B.pFrozen=Math.max(B.pFrozen,1);       extra=' 🌑 Shadow step freezes you! (Frozen 1)'; }
+      if (eId==='mira')   { B.pFrozen=Math.max(B.pFrozen,1);       extra=' 🌊 You are trapped in water! (Frozen 1)'; }
+      if (eId==='orion')  { B.pParalyzed=Math.max(B.pParalyzed,2); extra=' 🌪 Wind Blade launches you airborne! (Paralyzed 2)'; }
+      if (eId==='brutus') { B.pGuard=false; B.pParalyzed=Math.max(B.pParalyzed,1); extra=' 🛡 Shield Slam breaks your guard! (Guard Break + Paralyzed 1)'; }
+      if (eId==='elysia') { B.pBurning=Math.max(B.pBurning,2); B.pParalyzed=Math.max(B.pParalyzed,1); extra=' ✨ Arcane surge burns you! (Burn 2 + Paralyzed 1)'; }
     }
   } else {
     const {dmg,isCrit} = calcDmg(B.eAtk*1.2*boost, B.pDef, arenaDmg('ultimate', sk.damage), B.eCrit+10);
