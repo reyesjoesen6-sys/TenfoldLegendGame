@@ -323,7 +323,7 @@ const HEROES = {
           'https://res.cloudinary.com/jtrgd4x8/image/upload/Riven_Stone_Smash_effect_frame_1.webp',
           'https://res.cloudinary.com/jtrgd4x8/image/upload/Riven_Stone_Smash_effect_frame_2.webp',
           'https://res.cloudinary.com/jtrgd4x8/image/upload/Riven_Stone_Smash_effect_frame_3.webp',
-          'https://res.cloudinary.com/jtrgd4x8/image/upload/Riven_Stone_Smash_effect_frame_3.webp',
+          'https://res.cloudinary.com/jtrgd4x8/image/upload/Riven_Stone_Smash_effect_frame_4.webp',
           'https://res.cloudinary.com/jtrgd4x8/image/upload/Riven_Stone_Smash_effect_frame_5.webp',
           'https://res.cloudinary.com/jtrgd4x8/image/upload/Riven_Stone_Smash_effect_frame_6.webp'
         ]
@@ -411,11 +411,11 @@ const HEROES = {
         manaCost:20, damage:330, cooldown:6,
         frames:[
           'https://res.cloudinary.com/jtrgd4x8/image/upload/Selene_Moon_Fall_effect_frame_1.webp',
-          'https://res.cloudinary.com/jtrgd4x8/image/upload/Selena_Moon_Fall_effect_frame_2.webp',
-          'https://res.cloudinary.com/jtrgd4x8/image/upload/Selena_Moon_Fall_effect_frame_3.webp',
-          'https://res.cloudinary.com/jtrgd4x8/image/upload/Selena_Moon_Fall_effect_frame_4.webp',
-          'https://res.cloudinary.com/jtrgd4x8/image/upload/Selena_Moon_Fall_effect_frame_5.webp',
-          'https://res.cloudinary.com/jtrgd4x8/image/upload/Selena_Moon_Fall_effect_frame_6.webp'
+          'https://res.cloudinary.com/jtrgd4x8/image/upload/Selene_Moon_Fall_effect_frame_2.webp',
+          'https://res.cloudinary.com/jtrgd4x8/image/upload/Selene_Moon_Fall_effect_frame_3.webp',
+          'https://res.cloudinary.com/jtrgd4x8/image/upload/Selene_Moon_Fall_effect_frame_4.webp',
+          'https://res.cloudinary.com/jtrgd4x8/image/upload/Selene_Moon_Fall_effect_frame_5.webp',
+          'https://res.cloudinary.com/jtrgd4x8/image/upload/Selene_Moon_Fall_effect_frame_6.webp'
         ]
       }
     }
@@ -757,7 +757,7 @@ const STORY_ENEMIES = {
   // CHAPTER 1 — THE AWAKENING  (Fire enemies)
   // ══════════════════════════════════════════════════════════
   flame_imp: {
-    id: 'flame_imp', facesRight: false,
+    id: 'flame_imp', facesRight: false, spriteScale: 1.25,
     name: 'Flame Imp', title: 'Fire Minion',
     element: 'Fire', role: 'Monster',
     color: '#ff4500', glowColor: 'rgba(255,69,0,0.6)', bgColor: '#1a0800',
@@ -791,7 +791,7 @@ const STORY_ENEMIES = {
   },
 
   ash_wolf: {
-    id: 'ash_wolf', facesRight: false,
+    id: 'ash_wolf', facesRight: false, spriteScale: 1.3,
     name: 'Ash Wolf', title: 'Fire Beast',
     element: 'Fire', role: 'Monster',
     color: '#ff6600', glowColor: 'rgba(255,102,0,0.6)', bgColor: '#1a0800',
@@ -800,6 +800,7 @@ const STORY_ENEMIES = {
     sprites: {
       idle:   'https://res.cloudinary.com/jtrgd4x8/image/upload/AshWolf-idle.webp',
       walk:   'https://res.cloudinary.com/jtrgd4x8/image/upload/AshWolf-walk.webp',
+      run:    'https://res.cloudinary.com/jtrgd4x8/image/upload/AshWolf-sprint.webp',
       sprint: 'https://res.cloudinary.com/jtrgd4x8/image/upload/AshWolf-sprint.webp',
       attack: 'https://res.cloudinary.com/jtrgd4x8/image/upload/AshWolf-walk.webp',
       portrait: 'https://res.cloudinary.com/jtrgd4x8/image/upload/AshWolf-idle.webp',
@@ -823,7 +824,7 @@ const STORY_ENEMIES = {
   },
 
   magma_scorcher: {
-    id: 'magma_scorcher', facesRight: false,
+    id: 'magma_scorcher', facesRight: false, spriteScale: 1.5,
     name: 'Magma Scorcher', title: 'Lava Predator',
     element: 'Fire', role: 'Monster',
     color: '#ff5500', glowColor: 'rgba(255,85,0,0.6)', bgColor: '#1a0600',
@@ -853,7 +854,7 @@ const STORY_ENEMIES = {
   },
 
   pyro_wraith: {
-    id: 'pyro_wraith', facesRight: false,
+    id: 'pyro_wraith', facesRight: false, spriteScale: 1.3,
     name: 'Pyro Wraith', title: 'Flame Specter',
     element: 'Fire', role: 'Monster',
     color: '#ff2200', glowColor: 'rgba(255,34,0,0.6)', bgColor: '#180400',
@@ -883,7 +884,7 @@ const STORY_ENEMIES = {
   },
 
   cinder_golem: {
-    id: 'cinder_golem', facesRight: true,
+    id: 'cinder_golem', facesRight: true, spriteScale: 1.4,
     name: 'Cinder Golem', title: 'Stone & Fire',
     element: 'Fire', role: 'Monster',
     color: '#ff7722', glowColor: 'rgba(255,119,34,0.6)', bgColor: '#1a0800',
@@ -906,7 +907,7 @@ const STORY_ENEMIES = {
   },
 
   magma_serpent: {
-    id: 'magma_serpent', facesRight: false,
+    id: 'magma_serpent', facesRight: false, spriteScale: 1.35,
     name: 'Magma Serpent', title: 'Living Lava',
     element: 'Fire', role: 'Monster',
     color: '#ff3300', glowColor: 'rgba(255,51,0,0.6)', bgColor: '#200800',
@@ -929,7 +930,7 @@ const STORY_ENEMIES = {
   },
 
   lirael: {
-    id: 'lirael', facesRight: false,
+    id: 'lirael', facesRight: false, spriteScale: 1.35,
     name: 'Lirael', title: 'The Phoenix Seraphim',
     element: 'Fire', role: 'Boss',
     color: '#ff2200', glowColor: 'rgba(255,34,0,0.9)', bgColor: '#200500',
@@ -976,7 +977,7 @@ const STORY_ENEMIES = {
   },
 
   inferno_lord: {
-    id: 'inferno_lord', facesRight: true,
+    id: 'inferno_lord', facesRight: true, spriteScale: 1.4,
     name: 'Inferno Lord', title: 'Chapter 1 Boss',
     element: 'Fire', role: 'Boss',
     color: '#ff1100', glowColor: 'rgba(255,17,0,0.8)', bgColor: '#2a0400',
@@ -1002,7 +1003,7 @@ const STORY_ENEMIES = {
   // CHAPTER 2 — LYRA'S BLIZZARD  (Frost enemies)
   // ══════════════════════════════════════════════════════════
   frostling_brawler: {
-    id: 'frostling_brawler', facesRight: false,
+    id: 'frostling_brawler', facesRight: false, spriteScale: 1.25,
     name: 'Frostling Brawler', title: 'Ice Brute',
     element: 'Ice', role: 'Monster',
     color: '#88ddff', glowColor: 'rgba(136,221,255,0.6)', bgColor: '#000d18',
@@ -1033,7 +1034,7 @@ const STORY_ENEMIES = {
   },
 
   glacier_golem: {
-    id: 'glacier_golem', facesRight: false,
+    id: 'glacier_golem', facesRight: false, spriteScale: 1.4,
     name: 'Glacier Golem', title: 'Living Ice',
     element: 'Ice', role: 'Monster',
     color: '#55bbee', glowColor: 'rgba(85,187,238,0.6)', bgColor: '#00081a',
@@ -1065,7 +1066,7 @@ const STORY_ENEMIES = {
   },
 
   chillwind_sprite: {
-    id: 'chillwind_sprite', facesRight: false,
+    id: 'chillwind_sprite', facesRight: false, spriteScale: 1.5,
     name: 'Chill-Wind Sprite', title: 'Frost Wisp',
     element: 'Ice', role: 'Monster',
     color: '#aaeeff', glowColor: 'rgba(170,238,255,0.6)', bgColor: '#00060f',
@@ -1096,7 +1097,7 @@ const STORY_ENEMIES = {
   },
 
   frostbite_phantom: {
-    id: 'frostbite_phantom', facesRight: false,
+    id: 'frostbite_phantom', facesRight: false, spriteScale: 1.3,
     name: 'Frostbite Phantom', title: 'Elite Frost Specter',
     element: 'Ice', role: 'Monster',
     color: '#66ccff', glowColor: 'rgba(102,204,255,0.7)', bgColor: '#000a14',
@@ -1128,7 +1129,7 @@ const STORY_ENEMIES = {
   },
 
   kaelen: {
-    id: 'kaelen', facesRight: false,
+    id: 'kaelen', facesRight: false, spriteScale: 1.4,
     name: 'Kaelen', title: 'The Corrupted Frostlord',
     element: 'Ice', role: 'Boss',
     color: '#00cfff', glowColor: 'rgba(0,207,255,0.9)', bgColor: '#000d1a',
@@ -1184,7 +1185,7 @@ const STORY_ENEMIES = {
   // CHAPTER 3 — KAEL'S STORM  (Storm / Lightning enemies)
   // ══════════════════════════════════════════════════════════
   storm_goblin: {
-    id: 'storm_goblin', facesRight: false,
+    id: 'storm_goblin', facesRight: false, spriteScale: 1.2,
     name: 'Storm Goblin', title: 'Thunder Pest',
     element: 'Lightning', role: 'Monster',
     color: '#ffee00', glowColor: 'rgba(255,238,0,0.6)', bgColor: '#0d0d00',
@@ -1215,7 +1216,7 @@ const STORY_ENEMIES = {
   },
 
   thunder_brute: {
-    id: 'thunder_brute', facesRight: false,
+    id: 'thunder_brute', facesRight: false, spriteScale: 1.4,
     name: 'Thunder Brute', title: 'Storm Colossus',
     element: 'Lightning', role: 'Monster',
     color: '#ffdd00', glowColor: 'rgba(255,221,0,0.6)', bgColor: '#0d0d00',
@@ -1249,7 +1250,7 @@ const STORY_ENEMIES = {
   },
 
   tempest_archer: {
-    id: 'tempest_archer', facesRight: false,
+    id: 'tempest_archer', facesRight: false, spriteScale: 1.5,
     name: 'Tempest Archer', title: 'Storm Marksman',
     element: 'Lightning', role: 'Monster',
     color: '#aaee00', glowColor: 'rgba(170,238,0,0.6)', bgColor: '#080d00',
@@ -1280,7 +1281,7 @@ const STORY_ENEMIES = {
   },
 
   sky_reaper: {
-    id: 'sky_reaper', facesRight: false,
+    id: 'sky_reaper', facesRight: false, spriteScale: 1.35,
     name: 'Sky Reaper', title: 'Elite Storm Hunter',
     element: 'Lightning', role: 'Monster',
     color: '#ccdd00', glowColor: 'rgba(204,221,0,0.7)', bgColor: '#0a0d00',
@@ -1312,7 +1313,7 @@ const STORY_ENEMIES = {
   },
 
   zephyron: {
-    id: 'zephyron', facesRight: false,
+    id: 'zephyron', facesRight: false, spriteScale: 1.4,
     name: 'Zephyron', title: 'The Tempest King',
     element: 'Lightning', role: 'Boss',
     color: '#ffee00', glowColor: 'rgba(255,238,0,0.9)', bgColor: '#111100',
@@ -1370,7 +1371,7 @@ const STORY_ENEMIES = {
   // CHAPTER 4 — RIVEN'S FORTRESS  (Earth / Wind enemies)
   // ══════════════════════════════════════════════════════════
   dust_golem: {
-    id: 'dust_golem', facesRight: false,
+    id: 'dust_golem', facesRight: false, spriteScale: 1.4,
     name: 'Dust Golem', title: 'Earth Brute',
     element: 'Earth', role: 'Monster',
     color: '#cc9944', glowColor: 'rgba(204,153,68,0.6)', bgColor: '#100a00',
@@ -1399,7 +1400,7 @@ const STORY_ENEMIES = {
   },
 
   gale_harrier: {
-    id: 'gale_harrier', facesRight: false,
+    id: 'gale_harrier', facesRight: false, spriteScale: 1.3,
     name: 'Gale Harrier', title: 'Wind Predator',
     element: 'Earth', role: 'Monster',
     color: '#aacc66', glowColor: 'rgba(170,204,102,0.6)', bgColor: '#080d00',
@@ -1427,7 +1428,7 @@ const STORY_ENEMIES = {
   },
 
   sky_rift_falcon: {
-    id: 'sky_rift_falcon', facesRight: false,
+    id: 'sky_rift_falcon', facesRight: false, spriteScale: 1.5,
     name: 'Sky-Rift Falcon', title: 'Storm Raptor',
     element: 'Earth', role: 'Monster',
     color: '#88bb44', glowColor: 'rgba(136,187,68,0.6)', bgColor: '#060d00',
@@ -1455,7 +1456,7 @@ const STORY_ENEMIES = {
   },
 
   zephyr_sentinel: {
-    id: 'zephyr_sentinel', facesRight: false,
+    id: 'zephyr_sentinel', facesRight: false, spriteScale: 1.35,
     name: 'Zephyr Sentinel', title: 'Wind Guardian',
     element: 'Earth', role: 'Monster',
     color: '#99cc55', glowColor: 'rgba(153,204,85,0.7)', bgColor: '#070d00',
@@ -1483,7 +1484,7 @@ const STORY_ENEMIES = {
   },
 
   zephyrus: {
-    id: 'zephyrus', facesRight: false,
+    id: 'zephyrus', facesRight: false, spriteScale: 1.4,
     name: 'Zephyrus', title: 'The Tempest Sovereign',
     element: 'Earth', role: 'Boss',
     color: '#77cc33', glowColor: 'rgba(119,204,51,0.9)', bgColor: '#060e00',
@@ -1534,7 +1535,7 @@ const STORY_ENEMIES = {
   // CHAPTER 5 — SELENE'S MOON HUNT  (Moon / Light enemies)
   // ══════════════════════════════════════════════════════════
   glint_sprite: {
-    id: 'glint_sprite', facesRight: false,
+    id: 'glint_sprite', facesRight: false, spriteScale: 1.2,
     name: 'Glint Sprite', title: 'Moonlight Wisp',
     element: 'Light', role: 'Monster',
     color: '#eeddff', glowColor: 'rgba(238,221,255,0.6)', bgColor: '#08001a',
@@ -1562,7 +1563,7 @@ const STORY_ENEMIES = {
   },
 
   moonlit_stalker: {
-    id: 'moonlit_stalker', facesRight: false,
+    id: 'moonlit_stalker', facesRight: false, spriteScale: 1.3,
     name: 'Moonlit Stalker', title: 'Night Predator',
     element: 'Light', role: 'Monster',
     color: '#cc99ff', glowColor: 'rgba(204,153,255,0.6)', bgColor: '#080015',
@@ -1593,7 +1594,7 @@ const STORY_ENEMIES = {
   },
 
   lunar_warden: {
-    id: 'lunar_warden', facesRight: false,
+    id: 'lunar_warden', facesRight: false, spriteScale: 1.4,
     name: 'Lunar Warden', title: 'Moon Guardian',
     element: 'Light', role: 'Monster',
     color: '#bbaaff', glowColor: 'rgba(187,170,255,0.6)', bgColor: '#06001a',
@@ -1624,7 +1625,7 @@ const STORY_ENEMIES = {
   },
 
   eclipse_phantom: {
-    id: 'eclipse_phantom', facesRight: false,
+    id: 'eclipse_phantom', facesRight: false, spriteScale: 1.35,
     name: 'Eclipse Phantom', title: 'Dark Moon Elite',
     element: 'Light', role: 'Monster',
     color: '#9966cc', glowColor: 'rgba(153,102,204,0.7)', bgColor: '#050010',
@@ -1655,7 +1656,7 @@ const STORY_ENEMIES = {
   },
 
   lumina: {
-    id: 'lumina', facesRight: false,
+    id: 'lumina', facesRight: false, spriteScale: 1.4,
     name: 'Lumina', title: 'The Eclipse Empress',
     element: 'Light', role: 'Boss',
     color: '#ddaaff', glowColor: 'rgba(221,170,255,0.9)', bgColor: '#080015',
@@ -1707,7 +1708,7 @@ const STORY_ENEMIES = {
   // CHAPTER 6 — DRAVEN'S SHADOW  (Shadow / Dark enemies)
   // ══════════════════════════════════════════════════════════
   gloom_bat: {
-    id: 'gloom_bat', facesRight: false,
+    id: 'gloom_bat', facesRight: false, spriteScale: 1.2,
     name: 'Gloom Bat', title: 'Shadow Flyer',
     element: 'Dark', role: 'Monster',
     color: '#8800cc', glowColor: 'rgba(136,0,204,0.6)', bgColor: '#050010',
@@ -1735,7 +1736,7 @@ const STORY_ENEMIES = {
   },
 
   shadow_prowler: {
-    id: 'shadow_prowler', facesRight: false,
+    id: 'shadow_prowler', facesRight: false, spriteScale: 1.3,
     name: 'Shadow Prowler', title: 'Darkness Hunter',
     element: 'Dark', role: 'Monster',
     color: '#6600aa', glowColor: 'rgba(102,0,170,0.6)', bgColor: '#050010',
@@ -1763,7 +1764,7 @@ const STORY_ENEMIES = {
   },
 
   draven_abyssal_guard: {
-    id: 'draven_abyssal_guard', facesRight: false,
+    id: 'draven_abyssal_guard', facesRight: false, spriteScale: 1.3,
     name: 'Abyssal Guard', title: 'Shadow Sentinel',
     element: 'Dark', role: 'Monster',
     color: '#440088', glowColor: 'rgba(68,0,136,0.6)', bgColor: '#040010',
@@ -1791,7 +1792,7 @@ const STORY_ENEMIES = {
   },
 
   nightmare_assassin: {
-    id: 'nightmare_assassin', facesRight: false,
+    id: 'nightmare_assassin', facesRight: false, spriteScale: 1.3,
     name: 'Nightmare Assassin', title: 'Shadow Elite',
     element: 'Dark', role: 'Monster',
     color: '#7700bb', glowColor: 'rgba(119,0,187,0.7)', bgColor: '#050010',
@@ -1819,7 +1820,7 @@ const STORY_ENEMIES = {
   },
 
   malakor: {
-    id: 'malakor', facesRight: false,
+    id: 'malakor', facesRight: false, spriteScale: 1.4,
     name: 'Malakor', title: 'The Void Lord',
     element: 'Dark', role: 'Boss',
     color: '#aa00ff', glowColor: 'rgba(170,0,255,0.9)', bgColor: '#060012',
@@ -1870,7 +1871,7 @@ const STORY_ENEMIES = {
   // CHAPTER 7 — MIRA'S DEEP  (Water enemies)
   // ══════════════════════════════════════════════════════════
   tide_elemental: {
-    id: 'tide_elemental', facesRight: false,
+    id: 'tide_elemental', facesRight: false, spriteScale: 1.3,
     name: 'Tide Elemental', title: 'Living Water',
     element: 'Water', role: 'Monster',
     color: '#0088ff', glowColor: 'rgba(0,136,255,0.6)', bgColor: '#000818',
@@ -1898,7 +1899,7 @@ const STORY_ENEMIES = {
   },
 
   coral_scuttler: {
-    id: 'coral_scuttler', facesRight: false,
+    id: 'coral_scuttler', facesRight: false, spriteScale: 1.3,
     name: 'Coral Scuttler', title: 'Deep Crawler',
     element: 'Water', role: 'Monster',
     color: '#0066cc', glowColor: 'rgba(0,102,204,0.6)', bgColor: '#000a1a',
@@ -1926,7 +1927,7 @@ const STORY_ENEMIES = {
   },
 
   mira_abyssal_guard: {
-    id: 'mira_abyssal_guard', facesRight: false,
+    id: 'mira_abyssal_guard', facesRight: false, spriteScale: 1.3,
     name: 'Abyssal Guard', title: 'Deep Warden',
     element: 'Water', role: 'Monster',
     color: '#0044aa', glowColor: 'rgba(0,68,170,0.6)', bgColor: '#000612',
@@ -1954,7 +1955,7 @@ const STORY_ENEMIES = {
   },
 
   deep_sea_siren: {
-    id: 'deep_sea_siren', facesRight: false,
+    id: 'deep_sea_siren', facesRight: false, spriteScale: 1.3,
     name: 'Deep-Sea Siren', title: 'Ocean Elite',
     element: 'Water', role: 'Monster',
     color: '#0055dd', glowColor: 'rgba(0,85,221,0.7)', bgColor: '#000814',
@@ -1982,7 +1983,7 @@ const STORY_ENEMIES = {
   },
 
   leviathan: {
-    id: 'leviathan', facesRight: false,
+    id: 'leviathan', facesRight: false, spriteScale: 1.4,
     name: 'Leviathan', title: 'The Ocean Abyss',
     element: 'Water', role: 'Boss',
     color: '#0033bb', glowColor: 'rgba(0,51,187,0.9)', bgColor: '#000510',
@@ -2029,7 +2030,7 @@ const STORY_ENEMIES = {
   // CHAPTER 8 — ORION'S TEMPEST  (Wind enemies)
   // ══════════════════════════════════════════════════════════
   gale_wisplet: {
-    id: 'gale_wisplet', facesRight: false,
+    id: 'gale_wisplet', facesRight: false, spriteScale: 1.3,
     name: 'Gale Wisplet', title: 'Wind Wisp',
     element: 'Wind', role: 'Monster',
     color: '#aaffcc', glowColor: 'rgba(170,255,204,0.6)', bgColor: '#001408',
@@ -2057,7 +2058,7 @@ const STORY_ENEMIES = {
   },
 
   zephyr_stalker: {
-    id: 'zephyr_stalker', facesRight: false,
+    id: 'zephyr_stalker', facesRight: false, spriteScale: 1.3,
     name: 'Zephyr Stalker', title: 'Wind Hunter',
     element: 'Wind', role: 'Monster',
     color: '#88ffaa', glowColor: 'rgba(136,255,170,0.6)', bgColor: '#001208',
@@ -2085,7 +2086,7 @@ const STORY_ENEMIES = {
   },
 
   skyward_guard: {
-    id: 'skyward_guard', facesRight: false,
+    id: 'skyward_guard', facesRight: false, spriteScale: 1.3,
     name: 'Skyward Guard', title: 'Wind Sentinel',
     element: 'Wind', role: 'Monster',
     color: '#66ffbb', glowColor: 'rgba(102,255,187,0.6)', bgColor: '#000f06',
@@ -2113,7 +2114,7 @@ const STORY_ENEMIES = {
   },
 
   aero_phantom: {
-    id: 'aero_phantom', facesRight: false,
+    id: 'aero_phantom', facesRight: false, spriteScale: 1.3,
     name: 'Aero Phantom', title: 'Sky Elite',
     element: 'Wind', role: 'Monster',
     color: '#44ffcc', glowColor: 'rgba(68,255,204,0.7)', bgColor: '#001210',
@@ -2141,7 +2142,7 @@ const STORY_ENEMIES = {
   },
 
   boreas: {
-    id: 'boreas', facesRight: false,
+    id: 'boreas', facesRight: false, spriteScale: 1.4,
     name: 'Boreas', title: 'The Tempest Lord',
     element: 'Wind', role: 'Boss',
     color: '#00ffcc', glowColor: 'rgba(0,255,204,0.9)', bgColor: '#001412',
@@ -2188,7 +2189,7 @@ const STORY_ENEMIES = {
   // CHAPTER 9 — BRUTUS'S IRON SIEGE  (Metal enemies)
   // ══════════════════════════════════════════════════════════
   scrap_scuttler: {
-    id: 'scrap_scuttler', facesRight: false,
+    id: 'scrap_scuttler', facesRight: false, spriteScale: 1.3,
     name: 'Scrap Scuttler', title: 'Iron Pest',
     element: 'Metal', role: 'Monster',
     color: '#aaaaaa', glowColor: 'rgba(170,170,170,0.6)', bgColor: '#111111',
@@ -2216,7 +2217,7 @@ const STORY_ENEMIES = {
   },
 
   ironhide_hound: {
-    id: 'ironhide_hound', facesRight: false,
+    id: 'ironhide_hound', facesRight: false, spriteScale: 1.3,
     name: 'Ironhide Hound', title: 'Steel Beast',
     element: 'Metal', role: 'Monster',
     color: '#888888', glowColor: 'rgba(136,136,136,0.6)', bgColor: '#0e0e0e',
@@ -2244,7 +2245,7 @@ const STORY_ENEMIES = {
   },
 
   steel_sentinel: {
-    id: 'steel_sentinel', facesRight: false,
+    id: 'steel_sentinel', facesRight: false, spriteScale: 1.3,
     name: 'Steel Sentinel', title: 'Iron Guard',
     element: 'Metal', role: 'Monster',
     color: '#999999', glowColor: 'rgba(153,153,153,0.6)', bgColor: '#101010',
@@ -2272,7 +2273,7 @@ const STORY_ENEMIES = {
   },
 
   forged_executioner: {
-    id: 'forged_executioner', facesRight: false,
+    id: 'forged_executioner', facesRight: false, spriteScale: 1.3,
     name: 'Forged Executioner', title: 'Metal Elite',
     element: 'Metal', role: 'Monster',
     color: '#bbbbbb', glowColor: 'rgba(187,187,187,0.7)', bgColor: '#121212',
@@ -2300,7 +2301,7 @@ const STORY_ENEMIES = {
   },
 
   valkor: {
-    id: 'valkor', facesRight: false,
+    id: 'valkor', facesRight: false, spriteScale: 1.4,
     name: 'Valkor', title: 'The Steel Colossus',
     element: 'Metal', role: 'Boss',
     color: '#cccccc', glowColor: 'rgba(204,204,204,0.9)', bgColor: '#141414',
@@ -2348,7 +2349,7 @@ const STORY_ENEMIES = {
   // CHAPTER 10 — ELYSIA'S CELESTIAL TOWER  (Arcane enemies)
   // ══════════════════════════════════════════════════════════
   astral_sprite: {
-    id: 'astral_sprite', facesRight: false,
+    id: 'astral_sprite', facesRight: false, spriteScale: 1.3,
     name: 'Astral Sprite', title: 'Cosmic Wisp',
     element: 'Arcane', role: 'Monster',
     color: '#cc88ff', glowColor: 'rgba(204,136,255,0.6)', bgColor: '#060014',
@@ -2376,7 +2377,7 @@ const STORY_ENEMIES = {
   },
 
   starlight_prowler: {
-    id: 'starlight_prowler', facesRight: false,
+    id: 'starlight_prowler', facesRight: false, spriteScale: 1.3,
     name: 'Starlight Prowler', title: 'Arcane Hunter',
     element: 'Arcane', role: 'Monster',
     color: '#aa66ff', glowColor: 'rgba(170,102,255,0.6)', bgColor: '#050012',
@@ -2404,7 +2405,7 @@ const STORY_ENEMIES = {
   },
 
   celestial_guard: {
-    id: 'celestial_guard', facesRight: false,
+    id: 'celestial_guard', facesRight: false, spriteScale: 1.3,
     name: 'Celestial Guard', title: 'Arcane Sentinel',
     element: 'Arcane', role: 'Monster',
     color: '#8844ff', glowColor: 'rgba(136,68,255,0.6)', bgColor: '#04000f',
@@ -2432,7 +2433,7 @@ const STORY_ENEMIES = {
   },
 
   cosmic_phantom: {
-    id: 'cosmic_phantom', facesRight: false,
+    id: 'cosmic_phantom', facesRight: false, spriteScale: 1.3,
     name: 'Cosmic Phantom', title: 'Arcane Elite',
     element: 'Arcane', role: 'Monster',
     color: '#7722ff', glowColor: 'rgba(119,34,255,0.7)', bgColor: '#040010',
@@ -2460,7 +2461,7 @@ const STORY_ENEMIES = {
   },
 
   astralis: {
-    id: 'astralis', facesRight: false,
+    id: 'astralis', facesRight: false, spriteScale: 1.4,
     name: 'Astralis', title: 'The Cosmic Emperor',
     element: 'Arcane', role: 'Boss',
     color: '#ff88ff', glowColor: 'rgba(255,136,255,0.9)', bgColor: '#080018',
@@ -2507,7 +2508,7 @@ const STORY_ENEMIES = {
   // CHAPTER 2 — THE SHATTERED REALM  (Lightning enemies — kept for future chapters)
   // ══════════════════════════════════════════════════════════
   storm_sprite: {
-    id: 'storm_sprite', facesRight: true,
+    id: 'storm_sprite', facesRight: true, spriteScale: 1.3,
     name: 'Storm Sprite', title: 'Thunder Wisp',
     element: 'Lightning', role: 'Monster',
     color: '#ffe600', glowColor: 'rgba(255,230,0,0.6)', bgColor: '#0d0d00',
@@ -2530,7 +2531,7 @@ const STORY_ENEMIES = {
   },
 
   thunder_hawk: {
-    id: 'thunder_hawk', facesRight: false,
+    id: 'thunder_hawk', facesRight: false, spriteScale: 1.3,
     name: 'Thunder Hawk', title: 'Storm Predator',
     element: 'Lightning', role: 'Monster',
     color: '#ffdd00', glowColor: 'rgba(255,221,0,0.6)', bgColor: '#0d0d00',
@@ -2553,7 +2554,7 @@ const STORY_ENEMIES = {
   },
 
   volt_hound: {
-    id: 'volt_hound', facesRight: true,
+    id: 'volt_hound', facesRight: true, spriteScale: 1.3,
     name: 'Volt Hound', title: 'Electric Beast',
     element: 'Lightning', role: 'Monster',
     color: '#ffee44', glowColor: 'rgba(255,238,68,0.6)', bgColor: '#0d0d00',
@@ -2576,7 +2577,7 @@ const STORY_ENEMIES = {
   },
 
   storm_giant: {
-    id: 'storm_giant', facesRight: false,
+    id: 'storm_giant', facesRight: false, spriteScale: 1.3,
     name: 'Storm Giant', title: 'Thunder Colossus',
     element: 'Lightning', role: 'Monster',
     color: '#cccc00', glowColor: 'rgba(204,204,0,0.6)', bgColor: '#111100',
@@ -2599,7 +2600,7 @@ const STORY_ENEMIES = {
   },
 
   zeus_herald: {
-    id: 'zeus_herald', facesRight: true,
+    id: 'zeus_herald', facesRight: true, spriteScale: 1.4,
     name: 'Zeus Herald', title: 'Chapter 2 Boss',
     element: 'Lightning', role: 'Boss',
     color: '#ffee00', glowColor: 'rgba(255,238,0,0.8)', bgColor: '#1a1a00',
@@ -2625,7 +2626,7 @@ const STORY_ENEMIES = {
   // CHAPTER 3 — SHADOWS AND STARS  (Dark / Shadow enemies)
   // ══════════════════════════════════════════════════════════
   shade_wraith: {
-    id: 'shade_wraith', facesRight: false,
+    id: 'shade_wraith', facesRight: false, spriteScale: 1.3,
     name: 'Shade Wraith', title: 'Hollow Spirit',
     element: 'Dark', role: 'Monster',
     color: '#9932cc', glowColor: 'rgba(153,50,204,0.6)', bgColor: '#0a0010',
@@ -2648,7 +2649,7 @@ const STORY_ENEMIES = {
   },
 
   dark_stalker: {
-    id: 'dark_stalker', facesRight: true,
+    id: 'dark_stalker', facesRight: true, spriteScale: 1.3,
     name: 'Dark Stalker', title: 'Shadow Hunter',
     element: 'Dark', role: 'Monster',
     color: '#7700bb', glowColor: 'rgba(119,0,187,0.6)', bgColor: '#0a0010',
@@ -2671,7 +2672,7 @@ const STORY_ENEMIES = {
   },
 
   void_knight: {
-    id: 'void_knight', facesRight: false,
+    id: 'void_knight', facesRight: false, spriteScale: 1.3,
     name: 'Void Knight', title: 'Armor of Darkness',
     element: 'Dark', role: 'Monster',
     color: '#5500aa', glowColor: 'rgba(85,0,170,0.6)', bgColor: '#080018',
@@ -2694,7 +2695,7 @@ const STORY_ENEMIES = {
   },
 
   nightmare_beast: {
-    id: 'nightmare_beast', facesRight: true,
+    id: 'nightmare_beast', facesRight: true, spriteScale: 1.3,
     name: 'Nightmare Beast', title: 'Fear Incarnate',
     element: 'Dark', role: 'Monster',
     color: '#aa0099', glowColor: 'rgba(170,0,153,0.6)', bgColor: '#100010',
@@ -2717,7 +2718,7 @@ const STORY_ENEMIES = {
   },
 
   shadow_emperor: {
-    id: 'shadow_emperor', facesRight: false,
+    id: 'shadow_emperor', facesRight: false, spriteScale: 1.4,
     name: 'Shadow Emperor', title: 'Chapter 3 Boss',
     element: 'Dark', role: 'Boss',
     color: '#cc00ff', glowColor: 'rgba(204,0,255,0.8)', bgColor: '#130020',
@@ -2743,7 +2744,7 @@ const STORY_ENEMIES = {
   // CHAPTER 4 — RISE OF THE IRON LEGION  (Metal enemies)
   // ══════════════════════════════════════════════════════════
   iron_grunt: {
-    id: 'iron_grunt', facesRight: true,
+    id: 'iron_grunt', facesRight: true, spriteScale: 1.3,
     name: 'Iron Grunt', title: 'Steel Soldier',
     element: 'Metal', role: 'Monster',
     color: '#aaaaaa', glowColor: 'rgba(170,170,170,0.5)', bgColor: '#111111',
@@ -2766,7 +2767,7 @@ const STORY_ENEMIES = {
   },
 
   blade_automaton: {
-    id: 'blade_automaton', facesRight: false,
+    id: 'blade_automaton', facesRight: false, spriteScale: 1.3,
     name: 'Blade Automaton', title: 'War Machine',
     element: 'Metal', role: 'Monster',
     color: '#cc9900', glowColor: 'rgba(204,153,0,0.6)', bgColor: '#111100',
@@ -2789,7 +2790,7 @@ const STORY_ENEMIES = {
   },
 
   steel_colossus: {
-    id: 'steel_colossus', facesRight: true,
+    id: 'steel_colossus', facesRight: true, spriteScale: 1.3,
     name: 'Steel Colossus', title: 'Iron Titan',
     element: 'Metal', role: 'Monster',
     color: '#bbbbbb', glowColor: 'rgba(187,187,187,0.6)', bgColor: '#111111',
@@ -2812,7 +2813,7 @@ const STORY_ENEMIES = {
   },
 
   war_commander: {
-    id: 'war_commander', facesRight: false,
+    id: 'war_commander', facesRight: false, spriteScale: 1.3,
     name: 'War Commander', title: 'Legion General',
     element: 'Metal', role: 'Monster',
     color: '#dd9900', glowColor: 'rgba(221,153,0,0.6)', bgColor: '#150f00',
@@ -2835,7 +2836,7 @@ const STORY_ENEMIES = {
   },
 
   iron_overlord: {
-    id: 'iron_overlord', facesRight: true,
+    id: 'iron_overlord', facesRight: true, spriteScale: 1.4,
     name: 'Iron Overlord', title: 'Chapter 4 Boss',
     element: 'Metal', role: 'Boss',
     color: '#ffbb00', glowColor: 'rgba(255,187,0,0.8)', bgColor: '#1a1000',
@@ -2861,7 +2862,7 @@ const STORY_ENEMIES = {
   // CHAPTER 5 — THE FINAL RECKONING  (Mixed / Final Bosses)
   // ══════════════════════════════════════════════════════════
   void_sentinel: {
-    id: 'void_sentinel', facesRight: false,
+    id: 'void_sentinel', facesRight: false, spriteScale: 1.3,
     name: 'Void Sentinel', title: 'Gatekeeper',
     element: 'Dark', role: 'Monster',
     color: '#8800cc', glowColor: 'rgba(136,0,204,0.6)', bgColor: '#0e0018',
@@ -2884,7 +2885,7 @@ const STORY_ENEMIES = {
   },
 
   chaos_dragon: {
-    id: 'chaos_dragon', facesRight: true,
+    id: 'chaos_dragon', facesRight: true, spriteScale: 1.3,
     name: 'Chaos Dragon', title: 'Harbinger of Ruin',
     element: 'Fire', role: 'Monster',
     color: '#ff2200', glowColor: 'rgba(255,34,0,0.7)', bgColor: '#1a0500',
@@ -2907,7 +2908,7 @@ const STORY_ENEMIES = {
   },
 
   phantom_warlord: {
-    id: 'phantom_warlord', facesRight: false,
+    id: 'phantom_warlord', facesRight: false, spriteScale: 1.3,
     name: 'Phantom Warlord', title: 'Fallen Champion',
     element: 'Dark', role: 'Monster',
     color: '#bb44ff', glowColor: 'rgba(187,68,255,0.7)', bgColor: '#100015',
@@ -2930,7 +2931,7 @@ const STORY_ENEMIES = {
   },
 
   genesis_titan: {
-    id: 'genesis_titan', facesRight: true,
+    id: 'genesis_titan', facesRight: true, spriteScale: 1.4,
     name: 'Genesis Titan', title: 'World Ender',
     element: 'Arcane', role: 'Boss',
     color: '#ff88ff', glowColor: 'rgba(255,136,255,0.8)', bgColor: '#150020',
@@ -2953,7 +2954,7 @@ const STORY_ENEMIES = {
   },
 
   tenfold_sovereign: {
-    id: 'tenfold_sovereign', facesRight: false,
+    id: 'tenfold_sovereign', facesRight: false, spriteScale: 1.3,
     name: 'Tenfold Sovereign', title: 'FINAL BOSS',
     element: 'Arcane', role: 'Final Boss',
     color: '#ffcc00', glowColor: 'rgba(255,204,0,0.9)', bgColor: '#100020',
@@ -3172,13 +3173,31 @@ function apiCall(params, timeoutMs = 10000) {
 function getScaledStats(heroId, level = 1) {
   const entity = HEROES[heroId] || STORY_ENEMIES[heroId];
   const base = entity.stats;
-  const mult = 1 + (level - 1) * 0.08;
+  const lv   = Math.max(1, level);
+  const mult = 1 + (lv - 1) * 0.08;
   return {
     hp:   Math.floor(base.hp   * mult),
     atk:  Math.floor(base.atk  * mult),
     def:  Math.floor(base.def  * mult),
     spd:  Math.floor(base.spd  * mult),
-    crit: Math.min(base.crit + (level - 1), 50)
+    crit: Math.min(base.crit + (lv - 1), 50)
+  };
+}
+
+// ── ARENA FLAT STATS ──────────────────────────────────────────
+// In arena (hero vs hero), ALL heroes share the same base stats
+// per level so no hero has an inherent stat advantage over another.
+// Hero identity comes from skills, not raw stats.
+// Stats grow modestly per level (+5% HP, +4% ATK/DEF, +3 SPD, +1% CRIT).
+// SPD stays equal so no hero is inherently faster in arena.
+function getArenaStats(level = 1) {
+  const lv   = Math.max(1, level);
+  return {
+    hp:   Math.floor(1000 * (1 + (lv - 1) * 0.05)),  // 1000 → 1050 → 1100 …
+    atk:  Math.floor(120  * (1 + (lv - 1) * 0.04)),  // 120  → 124  → 129  …
+    def:  Math.floor(80   * (1 + (lv - 1) * 0.04)),  // 80   → 83   → 86   …
+    spd:  90 + (lv - 1) * 3,                          // 90   → 93   → 96   … (equal per level)
+    crit: Math.min(15 + (lv - 1), 40)                 // 15%  → 16%  → 17%  … capped at 40%
   };
 }
 
