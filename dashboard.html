@@ -764,26 +764,13 @@
     </div>
   </div>
 
-  <!-- ── CARD 7: Recent Battles (span 2) ── -->
+  <!-- ── CARD 7: Leaderboard (span 2) ── -->
   <div class="dash-card col-span-2">
     <div class="dash-card-header">
-      <div class="dash-card-title">⚔ RECENT BATTLES</div>
-      <button class="dash-card-action" onclick="location.href='battle.html'">Play Now →</button>
-    </div>
-    <div class="dash-card-body">
-      <div class="battle-log-list" id="battle-log-list">
-        <div class="no-battles">No battles yet — enter the arena and write your legend!</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── CARD 8: Leaderboard Mini ── -->
-  <div class="dash-card">
-    <div class="dash-card-header">
-      <div class="dash-card-title">🏆 TOP LEGENDS</div>
+      <div class="dash-card-title">🏆 LEADERBOARD</div>
       <button class="dash-card-action" onclick="location.href='leaderboard.html'">Full Board →</button>
     </div>
-    <div class="dash-card-body" id="lb-mini-body">
+    <div class="dash-card-body" id="battle-log-list">
       <div class="spinner"></div>
     </div>
   </div>
@@ -880,9 +867,27 @@ Game.syncScore().then((score) => {
 })();
 
 // ── LOCAL DATA ────────────────────────────────────────────────
-let unlocked = JSON.parse(safeLocalStorage.getItem('tenfold_unlocked_' + user.userID) || '["aeron"]');
 let levels   = JSON.parse(safeLocalStorage.getItem('tenfold_levels_'   + user.userID) || '{}');
 let progress = JSON.parse(safeLocalStorage.getItem('tenfold_story_'    + user.userID) || '{}');
+
+// Rebuild unlocked list strictly from story progress — never trust raw localStorage
+// which may have stale values from server data (e.g. lyra hardcoded as unlocked).
+(function rebuildUnlockedDashboard() {
+  const UNLOCK_AFTER = {
+    aeron:0, lyra:1, kael:2, riven:3, selene:4,
+    draven:5, mira:6, orion:7, brutus:8, elysia:9
+  };
+  const rebuilt = ['aeron'];
+  for (const [hid, afterCh] of Object.entries(UNLOCK_AFTER)) {
+    if (afterCh === 0) continue;
+    const bossKey = `${afterCh}_5`;
+    if (progress[bossKey] && progress[bossKey].completed && !rebuilt.includes(hid)) {
+      rebuilt.push(hid);
+    }
+  }
+  safeLocalStorage.setItem('tenfold_unlocked_' + user.userID, JSON.stringify(rebuilt));
+})();
+let unlocked = JSON.parse(safeLocalStorage.getItem('tenfold_unlocked_' + user.userID) || '["aeron"]');
 
 // ── RANK TIERS ────────────────────────────────────────────────
 const RANK_TIERS = [
@@ -897,14 +902,6 @@ function getTier(score) {
   return RANK_TIERS.find(t => score >= t.min && score <= t.max) || RANK_TIERS[0];
 }
 
-// ── UNLOCK THRESHOLDS ─────────────────────────────────────────
-const UNLOCK_PTS = [
-  { id:'kael',   pts:200  }, { id:'riven',  pts:400  },
-  { id:'selene', pts:600  }, { id:'draven', pts:800  },
-  { id:'mira',   pts:1000 }, { id:'brutus', pts:1400 },
-  { id:'elysia', pts:1800 }, { id:'zephyr', pts:2400 },
-];
-
 // ── BATTLE TIPS ───────────────────────────────────────────────
 const TIPS = [
   { icon:'⚡', text: '<strong>Use Ultimate wisely</strong> — it costs 80 MP. Build up mana with basic attacks before unleashing it.' },
@@ -916,7 +913,7 @@ const TIPS = [
   { icon:'🌙', text: '<strong>Selene\'s Moonfall</strong> always crits. Save your 80 MP for the decisive final blow.' },
   { icon:'🔮', text: '<strong>Elysia\'s Mana Surge</strong> boosts ATK for 2 turns. Activate it before using Celestial Judgment for maximum damage.' },
   { icon:'⚔', text: '<strong>Keyboard shortcuts:</strong> Q = Basic Skill, W = Special Skill, E = Ultimate Skill. React faster in battle!' },
-  { icon:'🏆', text: '<strong>Win battles</strong> to earn 100 pts each. Reach 200 pts to unlock Kael — the Storm Hunter!' },
+  { icon:'🏆', text: '<strong>Unlock heroes through Story Mode</strong> — defeat each chapter\'s Boss to unlock the next hero!' },
 ];
 
 // ── BANNER ────────────────────────────────────────────────────
@@ -1055,12 +1052,49 @@ function renderHeroCard() {
 
 // ── STORY PROGRESS ────────────────────────────────────────────
 const CHAPTER_DATA = [
-  { id:1, title:'The Awakening',        icon:'🔥', stages:5 },
-  { id:2, title:'The Shattered Realm',  icon:'⚡', stages:5 },
-  { id:3, title:'Shadows and Stars',    icon:'🌑', stages:5 },
-  { id:4, title:'Rise of the Iron Legion',icon:'⚙️',stages:5 },
-  { id:5, title:'The Final Reckoning',  icon:'👑', stages:5 },
+  { id:1,  title:'The Awakening',               icon:'🔥', stages:5, heroId:'aeron'  },
+  { id:2,  title:'The Shattered Realm',         icon:'❄️', stages:5, heroId:'lyra'   },
+  { id:3,  title:'Shadows and Stars',           icon:'⚡', stages:5, heroId:'kael'   },
+  { id:4,  title:'Rise of the Iron Legion',     icon:'🌍', stages:5, heroId:'riven'  },
+  { id:5,  title:'The Final Reckoning',         icon:'✨', stages:5, heroId:'selene' },
+  { id:6,  title:"Draven's Shadow",             icon:'🌑', stages:5, heroId:'draven' },
+  { id:7,  title:"Mira's Deep",                 icon:'💧', stages:5, heroId:'mira'   },
+  { id:8,  title:"Orion's Tempest",             icon:'🌪️', stages:5, heroId:'orion'  },
+  { id:9,  title:"Brutus's Iron Siege",         icon:'⚙️', stages:5, heroId:'brutus' },
+  { id:10, title:"Elysia's Celestial Tower",    icon:'🔮', stages:5, heroId:'elysia' },
 ];
+
+// ── MIGRATE old ch{N}_st{N} keys → {N}_{N} keys ──────────────
+(function migrateStoryKeys() {
+  const storyStorageKey = 'tenfold_story_' + (user && user.userID || '');
+  if (!storyStorageKey.endsWith('_')) {
+    const raw = safeLocalStorage.getItem(storyStorageKey);
+    if (!raw) return;
+    let prog;
+    try { prog = JSON.parse(raw); } catch(e) { return; }
+    let changed = false;
+    const newProg = {};
+    Object.keys(prog).forEach(k => {
+      const m = k.match(/^ch(\d+)_st(\d+)$/);
+      if (m) {
+        const newKey = `${m[1]}_${m[2]}`;
+        const existing = newProg[newKey] || prog[newKey];
+        if (!existing || (prog[k].stars || 0) > (existing.stars || 0)) {
+          newProg[newKey] = prog[k];
+        }
+        changed = true;
+      } else {
+        newProg[k] = prog[k];
+      }
+    });
+    if (changed) {
+      safeLocalStorage.setItem(storyStorageKey, JSON.stringify(newProg));
+      // Update the in-memory progress object too
+      Object.keys(progress).forEach(k => { if (/^ch\d+_st\d+$/.test(k)) delete progress[k]; });
+      Object.assign(progress, newProg);
+    }
+  }
+})();
 
 function renderStoryProgress() {
   const body = document.getElementById('story-card-body');
@@ -1075,7 +1109,7 @@ function renderStoryProgress() {
       progress[`${ch.id}_${i+1}`]?.stars || 0).reduce((a,b) => a+b, 0);
     const locked = ci > 0 && CHAPTER_DATA[ci-1] &&
       Array.from({length:CHAPTER_DATA[ci-1].stages},(_,i) =>
-        progress[`${ci}_${i+1}`]?.completed).filter(Boolean).length < CHAPTER_DATA[ci-1].stages;
+        progress[`${CHAPTER_DATA[ci-1].id}_${i+1}`]?.completed).filter(Boolean).length < CHAPTER_DATA[ci-1].stages;
 
     totalDone  += done;
     totalStars += stars;
@@ -1145,12 +1179,17 @@ function renderHeroesGrid() {
 }
 
 // ── NEXT UNLOCK ───────────────────────────────────────────────
+// Heroes are unlocked by clearing the previous chapter's boss (Stage 5).
+// This section shows which chapter to complete next to unlock the next hero.
 function renderNextUnlock() {
-  const body  = document.getElementById('next-unlock-body');
-  const score = user.totalScore || 0;
-  const next  = UNLOCK_PTS.find(u => !unlocked.includes(u.id));
+  const body = document.getElementById('next-unlock-body');
 
-  if (!next) {
+  // Find the first hero not yet unlocked, in story chapter order
+  // Chapter 1 hero (aeron) is always the starter — skip it.
+  // Each subsequent hero is unlocked by clearing the previous chapter's boss.
+  const nextChData = CHAPTER_DATA.find(ch => ch.id > 1 && !unlocked.includes(ch.heroId));
+
+  if (!nextChData) {
     body.innerHTML = `
       <div style="text-align:center;padding:16px;">
         <div style="font-size:2rem;margin-bottom:8px;">🎉</div>
@@ -1160,9 +1199,15 @@ function renderNextUnlock() {
     return;
   }
 
-  const h    = HEROES[next.id];
-  const pct  = Math.min(100, Math.round(score / next.pts * 100));
-  const need = Math.max(0, next.pts - score);
+  const h        = HEROES[nextChData.heroId];
+  const prevChId = nextChData.id - 1;
+  const prevCh   = CHAPTER_DATA.find(c => c.id === prevChId);
+
+  // How many stages done in the previous chapter (need all 5, especially boss)
+  const stagesDone = Array.from({length: prevCh.stages}, (_, i) =>
+    progress[`${prevChId}_${i+1}`]?.completed).filter(Boolean).length;
+  const pct  = Math.round(stagesDone / prevCh.stages * 100);
+  const bossCleared = progress[`${prevChId}_5`]?.completed;
 
   body.innerHTML = `
     <div class="nu-progress-row">
@@ -1172,88 +1217,91 @@ function renderNextUnlock() {
         <div class="nu-sub">${h.element} · ${h.fightingStyle}</div>
       </div>
     </div>
+    <div style="font-size:0.7rem;color:var(--subtext);margin:6px 0 4px;letter-spacing:1px;">
+      Complete Chapter ${prevChId}: ${prevCh.icon} ${prevCh.title}
+    </div>
     <div class="nu-bar"><div class="nu-fill" style="width:${pct}%;"></div></div>
     <div class="nu-pts-row">
-      <span>${formatNumber(score)} pts</span>
-      <span>${pct}% · ${formatNumber(need)} pts to unlock</span>
+      <span>${stagesDone}/${prevCh.stages} stages</span>
+      <span>${bossCleared ? '✅ Boss cleared!' : `👑 Beat Stage 5 Boss`}</span>
     </div>
     <div style="margin-top:12px;">
-      <a class="qa-btn" onclick="goToArena()" href="#" style="padding:10px 12px;">
-        <span class="qa-icon" style="font-size:1.1rem;">⚔</span>
+      <a class="qa-btn" href="story.html" style="padding:10px 12px;">
+        <span class="qa-icon" style="font-size:1.1rem;">📖</span>
         <div class="qa-text">
-          <div class="qa-title" style="font-size:0.82rem;">Win battles to unlock ${h.name}</div>
-          <div class="qa-sub">+100 pts per win</div>
+          <div class="qa-title" style="font-size:0.82rem;">Go to Story Mode to unlock ${h.name}</div>
+          <div class="qa-sub">Clear Chapter ${prevChId} Boss → ${h.name} unlocked!</div>
         </div>
       </a>
     </div>
   `;
 }
 
-// ── RECENT BATTLES ────────────────────────────────────────────
-function renderRecentBattles(battles) {
-  const list = document.getElementById('battle-log-list');
-  if (!battles || battles.length === 0) {
-    list.innerHTML = `<div class="no-battles">No battles yet — enter the arena and write your legend!</div>`;
-    return;
-  }
-
-  list.innerHTML = battles.slice(0, 6).map(b => {
-    const won   = b.result === 'win';
-    const hero  = HEROES[b.heroID]  || { name: b.heroName  || '?' };
-    const enemy = HEROES[b.enemyHeroID] || { name: b.enemyHeroName || '?' };
-    const date  = b.battleDate ? new Date(b.battleDate).toLocaleDateString() : 'Recently';
-    return `
-      <div class="bl-item">
-        <div class="bl-result ${won ? 'win' : 'lose'}">${won ? 'WIN' : 'LOSE'}</div>
-        <div class="bl-info">
-          <div class="bl-matchup">${hero.name || b.heroName} vs ${enemy.name || b.enemyHeroName}</div>
-          <div class="bl-meta">${date}${b.storyChapter > 0 ? ' · Chapter ' + b.storyChapter : ' · Arena'}</div>
-        </div>
-        <div class="bl-pts ${won ? 'win' : 'lose'}">${won ? '+100' : '+10'}</div>
-      </div>`;
-  }).join('');
+// ── LEADERBOARD FULL (replaces Recent Battles card) ──────────
+function renderRecentBattles(_unused) {
+  // This slot now shows the full leaderboard mini — called after
+  // entries are loaded. Actual rendering is done by renderLbFull().
 }
 
-// ── LEADERBOARD MINI ──────────────────────────────────────────
-function renderLbMini(entries) {
-  const body = document.getElementById('lb-mini-body');
+function renderLbFull(entries) {
+  const body = document.getElementById('battle-log-list');
   if (!entries || entries.length === 0) {
-    body.innerHTML = `<div style="text-align:center;color:var(--subtext);font-size:0.82rem;padding:16px;">No rankings yet.</div>`;
+    body.innerHTML = `<div style="text-align:center;color:var(--subtext);font-size:0.82rem;padding:20px;">No rankings yet. Win a battle to appear here!</div>`;
     return;
   }
 
   const myEntry = entries.find(e => e.userID === user.userID);
-  let html = '';
+  const top10   = entries.slice(0, 10);
+  const showMe  = myEntry && myEntry.rank > 10;
 
-  // Show top 5 + player's position if not in top 5
-  const top5 = entries.slice(0, 5);
-  const showMe = myEntry && myEntry.rank > 5;
+  let html = `<div class="lb-mini-list" style="display:flex;flex-direction:column;gap:4px;">`;
 
-  top5.forEach(e => {
+  top10.forEach(e => {
     const isMe  = e.userID === user.userID;
     const rcls  = e.rank <= 3 ? `r${e.rank}` : 'rn';
-    const medal = e.rank === 1 ? '🥇' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : e.rank;
+    const medal = e.rank === 1 ? '🥇' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : '#' + e.rank;
+    const wins   = e.wins   || 0;
+    const losses = e.losses || 0;
+    const total  = wins + losses;
+    const wr     = total ? Math.round(wins / total * 100) : 0;
+    const tier   = getTier(e.totalScore || 0);
     html += `
-      <div class="lb-mini-row" ${isMe ? 'style="background:rgba(240,192,64,0.07);border-radius:6px;padding:8px 6px;"' : ''}>
+      <div class="lb-mini-row" style="${isMe ? 'background:rgba(240,192,64,0.08);border-radius:7px;padding:8px 8px;' : 'padding:6px 8px;'}">
         <div class="lb-mini-rank ${rcls}">${medal}</div>
-        <div class="lb-mini-name ${isMe ? 'you' : ''}">${e.username}${isMe ? ' <span style="font-size:0.6rem;color:var(--gold);">(You)</span>' : ''}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="lb-mini-name ${isMe ? 'you' : ''}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${e.username}${isMe ? ' <span style="font-size:0.6rem;color:var(--gold);">(You)</span>' : ''}
+          </div>
+          <div style="font-size:0.65rem;color:${tier.color};margin-top:1px;">${tier.icon} ${tier.name} · ${wins}W ${losses}L · ${wr}% WR</div>
+        </div>
         <div class="lb-mini-score">${formatNumber(e.totalScore)}</div>
       </div>`;
   });
 
   if (showMe) {
-    html += `<div style="text-align:center;color:var(--subtext);font-size:0.7rem;padding:4px 0;">···</div>`;
+    html += `<div style="text-align:center;color:var(--subtext);font-size:0.7rem;padding:3px 0;">···</div>`;
     const rcls = myEntry.rank <= 3 ? `r${myEntry.rank}` : 'rn';
+    const wins   = myEntry.wins   || 0;
+    const losses = myEntry.losses || 0;
+    const total  = wins + losses;
+    const wr     = total ? Math.round(wins / total * 100) : 0;
+    const tier   = getTier(myEntry.totalScore || 0);
     html += `
-      <div class="lb-mini-row" style="background:rgba(240,192,64,0.07);border-radius:6px;padding:8px 6px;">
+      <div class="lb-mini-row" style="background:rgba(240,192,64,0.08);border-radius:7px;padding:8px 8px;">
         <div class="lb-mini-rank ${rcls}">#${myEntry.rank}</div>
-        <div class="lb-mini-name you">${myEntry.username} <span style="font-size:0.6rem;">(You)</span></div>
+        <div style="flex:1;min-width:0;">
+          <div class="lb-mini-name you">${myEntry.username} <span style="font-size:0.6rem;">(You)</span></div>
+          <div style="font-size:0.65rem;color:${tier.color};margin-top:1px;">${tier.icon} ${tier.name} · ${wins}W ${losses}L · ${wr}% WR</div>
+        </div>
         <div class="lb-mini-score">${formatNumber(myEntry.totalScore)}</div>
       </div>`;
   }
 
+  html += `</div>`;
   body.innerHTML = html;
 }
+
+// renderLbMini removed — leaderboard is now shown in the full card (renderLbFull)
 
 // ── BATTLE TIP ────────────────────────────────────────────────
 function renderTip() {
@@ -1346,12 +1394,12 @@ async function downloadPlayerData() {
         lvls[c.heroID + '_xp'] = Math.max(lvls[c.heroID + '_xp'] || 0, servXP);
       }
 
-      // If server says hero is unlocked, unlock it locally too
-      if (c.unlocked) unlockedSet.add(c.heroID);
+      // NOTE: We do NOT trust c.unlocked from the server for unlock display.
+      // Hero unlocks are derived strictly from story progress after it loads.
     });
 
-    safeLocalStorage.setItem(KEY.levels(),   JSON.stringify(lvls));
-    safeLocalStorage.setItem(KEY.unlocked(), JSON.stringify([...unlockedSet]));
+    safeLocalStorage.setItem(KEY.levels(), JSON.stringify(lvls));
+    // Do NOT save unlocked here — it will be rebuilt from story progress below.
   }
 
   // ── Story progress ──
@@ -1367,6 +1415,24 @@ async function downloadPlayerData() {
       }
     });
     safeLocalStorage.setItem(KEY.story(), JSON.stringify(prog));
+
+    // ── Rebuild hero unlocks strictly from story progress ─────
+    // aeron is always free. Every other hero unlocks only when their
+    // required chapter boss (stage 5) is cleared in story progress.
+    const HERO_UNLOCK_AFTER_CH_DB = {
+      aeron:0, lyra:1, kael:2, riven:3, selene:4,
+      draven:5, mira:6, orion:7, brutus:8, elysia:9
+    };
+    const rebuiltUnlocked = ['aeron'];
+    for (const [hid, afterCh] of Object.entries(HERO_UNLOCK_AFTER_CH_DB)) {
+      if (afterCh === 0) continue;
+      const bossKey = `${afterCh}_5`;
+      if (prog[bossKey] && prog[bossKey].completed && !rebuiltUnlocked.includes(hid)) {
+        rebuiltUnlocked.push(hid);
+      }
+    }
+    safeLocalStorage.setItem(KEY.unlocked(), JSON.stringify(rebuiltUnlocked));
+    unlocked = rebuiltUnlocked;
 
     // ── Derive skill unlocks from story progress ──────────────
     // Skills are locked/unlocked based on story stage completion.
@@ -1436,9 +1502,9 @@ function updateScoreUI(score) {
 
 // ── LOAD ALL DATA ─────────────────────────────────────────────
 async function loadDashboard() {
+
   // ════════════════════════════════════════════════════════
   // STEP 0 — RENDER LOCAL DATA IMMEDIATELY (no API wait)
-  // Shows all cards right away using cached/localStorage data.
   // ════════════════════════════════════════════════════════
   renderBanner();
   renderHeroCard();
@@ -1448,95 +1514,89 @@ async function loadDashboard() {
   renderTip();
   renderStats(0, 0, null);
 
-  // Show cached recent battles while we wait for server
-  const cachedBattles = JSON.parse(safeLocalStorage.getItem(KEY.battles()) || '[]');
-  renderRecentBattles(cachedBattles);
-
-  // Show cached leaderboard while we wait for server
+  // Show cached leaderboard immediately so the spinner is replaced right away
   try {
     const cached = JSON.parse(safeLocalStorage.getItem(KEY.lbCache()) || 'null');
     if (cached && cached.data && cached.data.length) {
-      renderLbMini(cached.data);
-      const meC = cached.data.find(e => e.userID === user.userID);
+      renderLbFull(cached.data);
+      const meC = cached.data.find(e => e.userID === user.userID)
+                || cached.data.find(e => String(e.userID).trim().toLowerCase() === String(user.userID).trim().toLowerCase());
       if (meC) renderStats(meC.wins || 0, meC.losses || 0, meC.rank || null);
+    } else {
+      renderLbFull([]);
     }
-  } catch(e) {}
+  } catch(e) {
+    renderLbFull([]);
+  }
 
   // ════════════════════════════════════════════════════════
-  // STEP 1 — FULL SYNC IN BACKGROUND (runs only when online)
-  // Order:
-  //   a) Flush offline-queued scores → server
-  //   b) Upload local levels/story → server  (offline → online)
-  //   c) Download server levels/story/unlocks → local  (online → offline)
+  // STEP 0b — SYNC STORY PROGRESS FROM SERVER (fast, targeted)
+  // Run this before background sync so the story card shows
+  // accurate server data right away, not stale localStorage.
   // ════════════════════════════════════════════════════════
-  const pingRes = await apiCall({ action:'ping' });
-  const isOnline = !!(pingRes && pingRes.success);
-
-  if (isOnline) {
-    // a) Push any queued offline battles first
-    await flushPendingScores();
-
-    // b) Upload local-only progress to server
-    await uploadLocalData();
-
-    // c) Download authoritative data from server
-    await downloadPlayerData();
-  } else {
-    // Offline: base score is the last confirmed server score.
-    // Add only battles that are actually queued for later sync.
-    const cachedScore = Math.max(0, parseInt(
-      safeLocalStorage.getItem(KEY.scoreCache()) || '0', 10
-    ) || 0);
-    let pendingPoints = 0;
+  if (navigator.onLine) {
     try {
+      const storyRes = await apiCall({ action:'getStory', userID:user.userID }, 5000);
+      if (storyRes.success && storyRes.progress && storyRes.progress.length) {
+        const prog = JSON.parse(safeLocalStorage.getItem(KEY.story()) || '{}');
+        storyRes.progress.forEach(p => {
+          const key = `${p.chapter}_${p.stage}`;
+          const local = prog[key] || {};
+          if (p.completed && (!local.completed || (p.stars || 0) > (local.stars || 0))) {
+            prog[key] = { completed: true, stars: p.stars || 0 };
+          }
+        });
+        safeLocalStorage.setItem(KEY.story(), JSON.stringify(prog));
+        Object.assign(progress, prog);
+        renderStoryProgress();
+      }
+    } catch(e) { /* offline or timeout — local data is fine */ }
+  }
+
+  // ════════════════════════════════════════════════════════
+  // STEP 1 — BACKGROUND SYNC (fire and forget, never blocks UI)
+  // Use navigator.onLine for instant online check — no ping needed.
+  // ════════════════════════════════════════════════════════
+  if (navigator.onLine) {
+    flushPendingScores().catch(() => {});
+    uploadLocalData().catch(() => {});
+    downloadPlayerData().catch(() => {});
+  } else {
+    try {
+      const cachedScore = Math.max(0, parseInt(
+        safeLocalStorage.getItem(KEY.scoreCache()) || '0', 10
+      ) || 0);
+      let pendingPoints = 0;
       const pending = JSON.parse(
         safeLocalStorage.getItem('tenfold_pending_scores_' + user.userID) || '[]'
       );
       pendingPoints = pending.reduce(
         (sum, p) => sum + (parseInt(p.pts, 10) || (p.result === 'win' ? 100 : 10)), 0
       );
-    } catch (e) {}
-    user.totalScore = cachedScore + pendingPoints;
-    Game.login(user);
+      user.totalScore = cachedScore + pendingPoints;
+      Game.login(user);
+    } catch(e) {}
   }
 
-  // Reload merged local data after sync — update module-level vars
-  // so ALL render functions (renderHeroCard, renderHeroesGrid, etc.) see fresh data
-  unlocked.length = 0;
-  JSON.parse(safeLocalStorage.getItem(KEY.unlocked()) || '["aeron"]')
-    .forEach(id => unlocked.push(id));
-
-  const freshLevels = JSON.parse(safeLocalStorage.getItem(KEY.levels()) || '{}');
-  Object.keys(levels).forEach(k => delete levels[k]);
-  Object.assign(levels, freshLevels);
-
-  const freshProg = JSON.parse(safeLocalStorage.getItem(KEY.story()) || '{}');
-  Object.keys(progress).forEach(k => delete progress[k]);
-  Object.assign(progress, freshProg);
-
-  // ── STEP 1: Render with correct data ─────────────────────
-  renderBanner();
-  renderHeroCard();
-  renderStoryProgress();
-  renderHeroesGrid();
-  renderNextUnlock();
-  renderTip();
-  renderStats(0, 0, null);
-
-  // ── STEP 2: Leaderboard ───────────────────────────────────
+  // ════════════════════════════════════════════════════════
+  // STEP 2 — LEADERBOARD (fast 5s timeout, always clears spinner)
+  // ════════════════════════════════════════════════════════
   let entries = [];
-  const lbRes = await apiCall({ action:'leaderboard' });
+  try {
+    const lbRes = await apiCall({ action:'leaderboard' }, 5000);
 
-  if (lbRes.success && lbRes.leaderboard) {
-    entries = lbRes.leaderboard;
-    // Cache for offline
-    safeLocalStorage.setItem(KEY.lbCache(), JSON.stringify({ ts:Date.now(), data:entries }));
-  } else {
-    // Use cached leaderboard when offline
+    if (lbRes && lbRes.success && lbRes.leaderboard && lbRes.leaderboard.length) {
+      entries = lbRes.leaderboard;
+      safeLocalStorage.setItem(KEY.lbCache(), JSON.stringify({ ts:Date.now(), data:entries }));
+    } else {
+      throw new Error('empty leaderboard response');
+    }
+  } catch(e) {
+    // Fall back to cache or single-user placeholder
     try {
       const cached = JSON.parse(safeLocalStorage.getItem(KEY.lbCache()) || 'null');
       entries = (cached && cached.data) || [];
-    } catch(e) { entries = []; }
+    } catch(_) { entries = []; }
 
     if (!entries.length) {
       entries = [{ rank:1, userID:user.userID, username:user.username,
@@ -1544,11 +1604,10 @@ async function loadDashboard() {
     }
   }
 
-  const me = entries.find(e => e.userID === user.userID);
+  // Score sync — server is authoritative
+  const me = entries.find(e => e.userID === user.userID)
+           || entries.find(e => String(e.userID).trim().toLowerCase() === String(user.userID).trim().toLowerCase());
 
-  // SCORE SYNC — Google Sheets is authoritative while online.
-  // Never use Math.max() here: a stale local value must not overwrite
-  // the real server score (for example 1700 vs 1670).
   if (me && me.totalScore !== undefined) {
     const serverScore = Math.max(0, parseInt(me.totalScore, 10) || 0);
     user.totalScore = serverScore;
@@ -1560,14 +1619,18 @@ async function loadDashboard() {
   renderBanner();
   renderNextUnlock();
 
-  renderStats(me?.wins || 0, me?.losses || 0, me?.rank || null);
-  renderLbMini(entries);
+  if (me) {
+    renderStats(me.wins || 0, me.losses || 0, me.rank || null);
+  } else {
+    const localBattles = JSON.parse(safeLocalStorage.getItem(KEY.battles()) || '[]');
+    const arenaOnly    = localBattles.filter(b => !b.storyChapter || b.storyChapter === 0);
+    const localWins    = arenaOnly.filter(b => b.result === 'win').length;
+    const localLosses  = arenaOnly.filter(b => b.result === 'lose').length;
+    renderStats(localWins, localLosses, null);
+  }
 
-  // Recent battles (local log)
-  const battles = JSON.parse(safeLocalStorage.getItem(KEY.battles()) || '[]');
-  renderRecentBattles(battles);
-
-  // Story progress — already synced above, just re-render
+  // Always render leaderboard — this clears the spinner no matter what
+  renderLbFull(entries);
   renderStoryProgress();
 }
 
