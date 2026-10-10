@@ -554,7 +554,7 @@ function rebuildUnlockedFromStory() {
   const rebuilt = ['aeron'];
   for (const [id, afterCh] of Object.entries(HERO_UNLOCK_AFTER_CH)) {
     if (afterCh === 0) continue;
-    const key = `ch${afterCh}_st5`;
+    const key = `${afterCh}_5`;
     if (storyProgress[key] && storyProgress[key].completed) {
       if (!rebuilt.includes(id)) rebuilt.push(id);
     }
@@ -597,8 +597,8 @@ function isHeroStoryUnlocked(id) {
   if (Game.isAdmin()) return true; // admins have all heroes unlocked
   const afterCh = HERO_UNLOCK_AFTER_CH[id];
   if (afterCh === undefined || afterCh === 0) return true; // aeron / unknown
-  // Check if ch{afterCh}_st5 is completed in storyProgress
-  const key = `ch${afterCh}_st5`;
+  // Check if {afterCh}_5 is completed in storyProgress (format used by story.html)
+  const key = `${afterCh}_5`;
   return !!(storyProgress[key] && storyProgress[key].completed);
 }
 
