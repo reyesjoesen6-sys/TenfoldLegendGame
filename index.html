@@ -552,23 +552,23 @@
   }
 
   // ── MOBILE-SAFE API REQUEST ─────────────────────────────────────
-  // MIT App Inventor WebViewer can sometimes leave an external request
-  // waiting for a long time. The game must still be usable on the phone,
-  // so the local account is used immediately when the API is unreachable.
-  async function mobileApiCall(params, timeoutMs = 6000) {
+  // Google Apps Script has a cold-start delay of 3–8 seconds when the
+  // server has not been accessed recently. The timeout must be long enough
+  // to survive that cold start on both login and register.
+  async function mobileApiCall(params, timeoutMs = 15000) {
     try {
       return await Promise.race([
-        apiCall(params),
+        apiCall(params, timeoutMs),
         new Promise(resolve => setTimeout(() => resolve({
           success: false,
           timeout: true,
-          message: 'Server took too long to respond.'
+          message: 'Server is taking too long to respond. Please try again in a moment.'
         }), timeoutMs))
       ]);
     } catch (err) {
       return {
         success: false,
-        message: err && err.message ? err.message : 'Connection error.'
+        message: err && err.message ? err.message : 'Connection error. Check your internet and try again.'
       };
     }
   }
@@ -590,17 +590,14 @@
     }
 
     btn.disabled = true;
-    btnText.textContent = 'Entering…';
+    btnText.textContent = 'Connecting…';
 
-    // 1. Check this phone's saved account first.
-    // This makes login work reliably inside MIT App Inventor WebViewer.
-
-    // 2. If there is no local account, try Google Apps Script.
+    // Try the server — 15s timeout to survive Apps Script cold starts
     const res = await mobileApiCall({
       action: 'login',
       email,
       password
-    });
+    }, 15000);
 
     if (res.success) {
 
@@ -613,9 +610,11 @@
       return;
     }
 
-    showAlert(res.timeout
-      ? 'Cannot reach the server right now. Register/login on this phone first, or check your internet connection.'
-      : (res.message || 'Invalid email or password.'));
+    if (res.timeout) {
+      showAlert('Server is warming up — please try again in a few seconds.', 'error');
+    } else {
+      showAlert(res.message || 'Invalid email or password.');
+    }
 
     btn.disabled = false;
     btnText.textContent = '⚔ ENTER THE ARENA';
@@ -647,7 +646,7 @@
     // Wait for Google Sheets to save the account before proceeding.
     // This ensures the UserID is the real server-side ID so all
     // EXP, scores, and progress are saved correctly.
-    const res = await mobileApiCall({ action: 'register', username, email, password }, 12000);
+    const res = await mobileApiCall({ action: 'register', username, email, password }, 15000);
 
     if (res && res.success) {
       // Real server ID — all progress will save correctly to Google Sheets
@@ -663,8 +662,8 @@
       setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
 
     } else if (res && res.timeout) {
-      // Server unreachable — warn the user, do NOT proceed with a local ID
-      showAlert('Cannot reach the server. Please check your internet connection and try again.', 'error');
+      // Server warming up (cold start) — prompt retry, do NOT create local ID
+      showAlert('Server is warming up. Please wait a moment and try again.', 'error');
       btn.disabled = false;
       btn.style.pointerEvents = '';
       btnText.textContent = '✦ CREATE YOUR LEGEND';
