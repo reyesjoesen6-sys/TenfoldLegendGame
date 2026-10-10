@@ -1020,7 +1020,7 @@
 
     <button
       class="nav-btn"
-      onclick="goArena()">
+      onclick="goToArena()">
       Arena
     </button>
 
@@ -1302,7 +1302,7 @@
       <button
         class="btn btn-gold"
         style="width:100%;"
-        onclick="goArena()">
+        onclick="goToArena()">
         ⚔ ENTER ARENA
       </button>
 
@@ -2479,7 +2479,7 @@
   // GO ARENA
   // ==========================================================
 
-  function goArena() {
+  function goToArena() {
     if (!Game.isAdmin()) {
       const heroId     = Game.getSelectedHero() || 'aeron';
       const skillUL    = JSON.parse(safeLocalStorage.getItem('tenfold_skills_' + (Game.user && Game.user.userID || 'demo')) || '{}');
